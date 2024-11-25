@@ -1,15 +1,15 @@
 #include <iostream>
 #include <cstring>
-#include <sstream>
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <unistd.h>
+#include <sstream>
 
 #define PORT 54000
 #define BUFFER_SIZE 1024
 
 void print_main_menu() {
-    std::cout << "1. Login\n2. Register\n3. Logout\nYour choice: ";
+    std::cout << "1. Login\n2. Register\n Your choice: ";
 }
 
 void print_functions() {
@@ -18,7 +18,7 @@ void print_functions() {
     std::cout << "__________________________________________________\n";
     std::cout << "Your message: ";
 }
-
+void handle_logout(int client_socket);
 void handle_login(int client_socket) {
     std::string username, password;
     std::cout << "Enter username: ";
@@ -96,9 +96,7 @@ void handle_register(int client_socket) {
 }
 
 void handle_logout(int client_socket) {
-    std::string username;
-    std::cout << "Enter username: ";
-    std::cin >> username;
+
 
     std::string message = "LOGOUT/";
     send(client_socket, message.c_str(), message.size(), 0);
