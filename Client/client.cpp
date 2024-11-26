@@ -41,12 +41,12 @@ int main()
             string choice;
             getline(cin, choice);
             string lower_choice = trim(lower(choice));
-            if (lower_choice == "exit")
+            if (lower_choice == "3")
             {
                 send(client_socket, lower_choice.c_str(), choice.length(), 0);
                 break;
             }
-            else if (lower_choice == "log in")
+            else if (lower_choice == "1")
             {
                 string username, password;
                 cout << "Enter username: ";
@@ -56,7 +56,7 @@ int main()
                 string msg = "login/" + username + "/" + password;
                 send(client_socket, msg.c_str(), msg.length(), 0);
             }
-            else if (lower_choice == "register")
+            else if (lower_choice == "2")
             {
                 string username, password;
                 cout << "Enter new username: ";
@@ -99,24 +99,28 @@ int main()
                     string choice1;
                     getline(cin, choice1);
                     string lower_choice1 = trim(lower(choice1));
-                    if (lower_choice1 == "exit")
-                    {
-                        send(client_socket, lower_choice.c_str(), choice.length(), 0);
-                        break;
-                    }
+                    // if (lower_choice1 == "exit")
+                    // {
+                    //     send(client_socket, lower_choice.c_str(), choice.length(), 0);
+                    //     break;
+                    // }
                     //search
-                    else if (lower_choice1 == "search")
+                    if (lower_choice1 == "1")
                     {
                         string company, destination_point, departure_point, departure_date, return_date;
                         string search_msg;
                         while (1)
                         {
-                            int choice2;
                             print_menu_search();
-                            cin >> choice2;
-                            cin.ignore(numeric_limits<streamsize>::max(), '\n');
-                            if (choice2 == 1)
+                            string choice2;
+                            getline(cin, choice2);
+                            
+                            // cin >> choice2;
+                            // cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                        
+                            if (choice2 == "1")
                             {
+                                
                                 cout << "Enter departure point: ";
                                 getline(cin, departure_point);
                                 cout << "Enter destination point: ";
@@ -124,10 +128,10 @@ int main()
                                 search_msg += "search1/" + departure_point + "/" + destination_point;
                                 break;
                             }
-                            else if (choice2 == 3)
+                            else if (choice2 == "3")
                             {
                                 
-
+                                
                                 cout << "Enter departure point : ";
                                 getline(cin, departure_point);
 
@@ -138,8 +142,9 @@ int main()
                                 search_msg += "search3/"  + departure_point + "/" + destination_point+ "/" + return_date;
                                 break;
                             }
-                            else if (choice2 == 2)
+                            else if (choice2 == "2")
                             {
+                                
                                 cout << "Enter departure point : ";
                                 getline(cin, departure_point);
 
@@ -151,8 +156,9 @@ int main()
                                 search_msg += "search2/" + departure_point + "/" + destination_point + "/" + departure_date;
                                 break;
                             }
-                            else if (choice2 == 4)
+                            else if (choice2 == "4")
                             {
+                               
                                 cout << "Enter departure point : ";
                                 getline(cin, departure_point);
 
@@ -167,19 +173,22 @@ int main()
                                 search_msg += "search4/" + departure_point + "/" + destination_point + "/" + departure_date + "/" + return_date;
                                 break;
                             }
-                            
-                             else if (choice2 == 5){
+                            else if (choice2 == "5")
+                            {
+                                printf("Exit search\n");
+                                search_msg += "exit search request";
                                 break;
-                             }
+                            }
                             else
                             {
                                 std::cout << "Invalid choice!\n";
                             }
+    
                         }
                         send(client_socket, search_msg.c_str(), search_msg.length(), 0);
                     }
  
-                    else if (lower_choice1 == "log out")
+                    else if (lower_choice1 == "8")
                     {
                         send(client_socket, "logout", strlen("logout"), 0);
                         memset(buffer, 0, BUFFER_SIZE);
@@ -191,7 +200,7 @@ int main()
                         buffer[bytes_received1] = '\0';
 
                         string response1 = string(buffer);
-                        if (response1 == "O_log")
+                        if (response1 == "230/")
                         {
                             cur_role = Role::none; // Resetting the role to none
                             std::cout << "You've logged out successfully!" << endl;
@@ -224,6 +233,7 @@ int main()
                     {
                         std::cout << "Can't find the flight!\n";
                     }
+                    
 
 
                 }

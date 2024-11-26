@@ -484,6 +484,8 @@ void search_flight4(int client_socket, const string &departure_point, const stri
     sqlite3_finalize(stmt);
 }
 
+
+
 void functions(int client_socket, const User &user)
 {
     char buffer[BUFFER_SIZE];
@@ -528,6 +530,12 @@ void functions(int client_socket, const User &user)
         if (lower(type1[0]) == "search4")
         {
             search_flight4(client_socket, type1[1], type1[2], type1[3], type1[4], user);
+        }
+        if (lower(type1[0]) == "exit_search")
+        {
+            string msg;
+            msg += "Exit search";
+            send(client_socket, msg.c_str(), msg.length(), 0);
         }
    
 }
