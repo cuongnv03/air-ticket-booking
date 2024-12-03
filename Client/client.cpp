@@ -176,7 +176,7 @@ int main()
                             else if (choice2 == "5")
                             {
                                 printf("Exit search\n");
-                                search_msg += "exit search request";
+                                search_msg += "exit_search_request/";
                                 break;
                             }
                             else

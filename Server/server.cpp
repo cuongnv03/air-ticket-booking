@@ -531,7 +531,7 @@ void functions(int client_socket, const User &user)
         {
             search_flight4(client_socket, type1[1], type1[2], type1[3], type1[4], user);
         }
-        if (lower(type1[0]) == "exit_search")
+        if (lower(type1[0]) == "exit_search_request")
         {
             string msg;
             msg += "Exit search";
