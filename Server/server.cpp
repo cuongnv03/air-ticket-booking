@@ -485,6 +485,88 @@ void search_flight4(int client_socket, const string &departure_point, const stri
 }
 
 
+void compare_flights(int client_socket, const string &departure_point, const string &destination_point, const string &departure_date, const string &seat_class, const string &order, const User &user)
+{
+     string noti = checknoti(client_socket);
+    string msg;
+    sqlite3_stmt *stmt;
+    bool found = false;
+
+    string result_str = "311/";
+
+    // Xác định cột ghế và giá dựa trên loại ghế
+    string seat_column = (seat_class == "A") ? "seat_class_A" : "seat_class_B";
+    string price_column = (seat_class == "A") ? "price_A" : "price_B";
+
+    // Kiểm tra tính hợp lệ của tham số order
+    string order_clause = (order == "ASC") ? "ASC" : "DESC";
+
+    // Tạo truy vấn động
+    string query = "SELECT *"
+                   "FROM Flights "
+                   "WHERE departure_point = ? "
+                   "AND destination_point = ? "
+                   "AND departure_date <= ? "
+                   "ORDER BY " + price_column + " " + order_clause;
+
+    if (sqlite3_prepare_v2(db, query.c_str(), -1, &stmt, nullptr) != SQLITE_OK)
+    {
+        cerr << "Error preparing query: " << sqlite3_errmsg(db) << endl;
+        send(client_socket, "411/", strlen("411/"), 0);
+        return;
+    }
+
+    sqlite3_bind_text(stmt, 1, departure_point.c_str(), -1, SQLITE_STATIC);
+    sqlite3_bind_text(stmt, 2, destination_point.c_str(), -1, SQLITE_STATIC);
+    sqlite3_bind_text(stmt, 3, departure_date.c_str(), -1, SQLITE_STATIC);
+
+   
+
+    while (sqlite3_step(stmt) == SQLITE_ROW)
+    {
+        found = true;
+        Flights flight;
+        flight.company = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 0));
+        flight.flight_num = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 1));
+        flight.num_A = sqlite3_column_int(stmt, 2);
+        flight.num_B = sqlite3_column_int(stmt, 3);
+        flight.price_A = sqlite3_column_int(stmt, 4);
+        flight.price_B = sqlite3_column_int(stmt, 5);
+        flight.departure_point = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 6));
+        flight.destination_point = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 7));
+        flight.departure_date = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 8));
+        flight.return_date = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 9));
+
+        result_str += flight.company + ",";
+        result_str += flight.flight_num + ",";
+        result_str += to_string(flight.num_A) + ",";
+        result_str += to_string(flight.num_B) + ",";
+        result_str += to_string(flight.price_A) + " VND" + ",";
+        result_str += to_string(flight.price_B) + " VND" + ",";
+        result_str += flight.departure_point + ",";
+        result_str += flight.destination_point + ",";
+        result_str += flight.departure_date + ",";
+        result_str += flight.return_date + ";";
+    }
+
+    if (!found)
+    {
+        msg = "411/" + noti;
+        cout << "Send: " << msg << " ->" << user.username << "\n";
+        send(client_socket, msg.c_str(), msg.length(), 0);
+    }
+    else
+    {
+        msg = result_str + noti;
+        cout << "Send: " << msg << " ->" << user.username << "\n";
+        send(client_socket, msg.c_str(), msg.length(), 0);
+    }
+
+    sqlite3_finalize(stmt);
+}
+
+
+
 
 void functions(int client_socket, const User &user)
 {
@@ -530,6 +612,10 @@ void functions(int client_socket, const User &user)
         if (lower(type1[0]) == "search4")
         {
             search_flight4(client_socket, type1[1], type1[2], type1[3], type1[4], user);
+        }
+        if (lower(type1[0]) == "compare")
+        {
+            compare_flights(client_socket, type1[1], type1[2], type1[3], type1[4], type1[5], user);
         }
         if (lower(type1[0]) == "exit_search")
         {

@@ -107,7 +107,7 @@ int main()
                     //search
                     if (lower_choice1 == "1")
                     {
-                        string company, destination_point, departure_point, departure_date, return_date;
+                        string company, destination_point, departure_point, departure_date, return_date, seat_class;
                         string search_msg;
                         while (1)
                         {
@@ -174,6 +174,41 @@ int main()
                                 break;
                             }
                             else if (choice2 == "5")
+                            {
+                                cout << "Enter departure point: ";
+                                getline(cin, departure_point);
+
+                                cout << "Enter destination point: ";
+                                getline(cin, destination_point);
+
+                                cout << "Enter departure date (or leave blank for any, format YYYY-MM-DD): ";
+                                getline(cin, departure_date);
+
+                                cout << "Choose seat class (A or B): ";
+                                getline(cin, seat_class);
+
+                                string order;
+                                while (true)
+                                {
+                                    cout << "Choose order (ASC or DESC): ";
+                                    getline(cin, order);
+
+                                    if (order == "ASC" || order == "DESC")
+                                    {
+                                        break; // Nếu nhập hợp lệ, thoát vòng lặp
+                                    }
+                                    else
+                                    {
+                                        cout << "Invalid order! Please enter 'ASC' or 'DESC'." << endl;
+                                    }
+                                }
+
+                                // Tạo thông điệp gửi
+                                search_msg += "compare/" + departure_point + "/" + destination_point + "/" + departure_date + "/" + seat_class + "/" + order;
+                                break;
+                            }
+
+                            else if (choice2 == "6")
                             {
                                 printf("Exit search\n");
                                 search_msg += "exit search request";

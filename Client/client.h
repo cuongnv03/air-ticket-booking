@@ -59,8 +59,9 @@ void print_menu_search()
     std::cout << "2. Search based on departure point, destination point, departure date\n";
     std::cout << "3. Search based on departure point, destination point, return date\n";
     std::cout << "4. Search based on departure point, destination point, departure date, return date\n";
-    std::cout << "5. Exit\n";
-    std::cout << "Your choice(1-5): ";
+    std::cout << "5. Sort based on departure point, destination point, departure date, price \n";
+    std::cout << "6. Exit\n";
+    std::cout << "Your choice(1-6): ";
 }
 string lower(const string &input)
 {
