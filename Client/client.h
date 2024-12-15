@@ -1,6 +1,8 @@
 #include <iostream>
 #include <cstring>
 #include <string>
+#include <sstream>
+#include <regex>
 #include <unistd.h>
 #include <sys/socket.h>
 #include <netinet/in.h>

@@ -82,7 +82,7 @@ int main()
             string message(buffer);
             string response = string(buffer);
 
-            if (response == "401/" || response == "220/")
+            if (response == "210/" || response == "220/")
             {
                 cout << "You're currently online!" << endl;
                 cur_role = Role::user;
@@ -120,7 +120,6 @@ int main()
                         
                             if (choice2 == "1")
                             {
-                                
                                 cout << "Enter departure point: ";
                                 getline(cin, departure_point);
                                 cout << "Enter destination point: ";
@@ -176,7 +175,7 @@ int main()
                             else if (choice2 == "5")
                             {
                                 printf("Exit search\n");
-                                search_msg += "exit_search_request/";
+                                send(client_socket, "exit search request", strlen("exit search request"), 0);
                                 break;
                             }
                             else
@@ -186,6 +185,90 @@ int main()
     
                         }
                         send(client_socket, search_msg.c_str(), search_msg.length(), 0);
+                    }
+
+                    else if (lower_choice1 == "2"){
+                        string flight_num, seat_class;
+                        cout << "Enter your flight ID: ";
+                        getline(cin, flight_num);
+                        cout << "Enter your desired seat class (A/B): ";
+                        getline(cin, seat_class);
+                        string book_msg = "book/" + flight_num + "/" + seat_class;
+                        send(client_socket, book_msg.c_str(), book_msg.length(), 0);
+
+                        memset(buffer, 0, BUFFER_SIZE);
+                        recv(client_socket, buffer, BUFFER_SIZE, 0);
+                        string response(buffer);
+                        istringstream iss(response);
+                        string code, ticket_code, ticket_price;
+                        getline(iss, code, '/');
+                        if (code == "330") {
+                            getline(iss, ticket_code, '/');
+                            getline(iss, ticket_price, '/');
+                            cout << "You are booking flight ticket with ticket ID: " << ticket_code
+                                << " and you need to pay " << ticket_price << "đ to complete booking.\n";
+                            
+                            // Automatically redirect to pay method
+                            string pay_method, pay_details;
+                            cout << "Enter payment method (card/e-wallet): ";
+                            cin >> pay_method;
+
+                            if (pay_method != "card" && pay_method != "e-wallet") {
+                                cout << "Invalid payment method. Choose 'card' or 'e-wallet'.\n";
+                                continue;
+                            }
+                            cout << "Enter payment details: ";
+                            cin >> pay_details;
+
+                            if ((pay_method == "card" && pay_details.length() != 16) ||
+                                (pay_method == "e-wallet" && pay_details.length() != 10)) {
+                                cout << "Invalid payment details format.\n";
+                                continue;
+                            }
+                            string pay_command = "pay/" + ticket_code + "/" + ticket_price + "/" + pay_method + "/" + pay_details;
+                            send(client_socket, pay_command.c_str(), pay_command.length(), 0);
+
+                            memset(buffer, 0, BUFFER_SIZE);
+                            recv(client_socket, buffer, BUFFER_SIZE, 0);
+                            string response(buffer);
+                            istringstream iss(response);
+                            string pay_code;
+                            getline(iss, pay_code, '/');
+                            if (pay_code == "341" || pay_code == "342") {
+                                cout << "You have paid " << ticket_price << " successfully with " << pay_method << " " << pay_details
+                                    << ". Your ticket ID is " << ticket_code << ".\n";
+                                continue;
+                            } else if (pay_code == "441") {
+                                cout << "You don't have enough money to pay this.\n";
+                                continue;
+                            } else if (pay_code == "442") {
+                                cout << "Payment detail does not exist.\n";
+                                continue;
+                            } else if (pay_code == "443") {
+                                cout << "Invalid format of input.\n";
+                                continue;
+                            } else {
+                                cout << "Unexpected server response: " << response << endl;
+                                continue;
+                            }
+                            continue;
+                        } else if (code == "431") {
+                            cout << "Wrong seat class in this flight. Only choose A or B.\n";
+                            continue;
+                        } else if (code == "432") {
+                            cout << "There is no flight with that flight ID.\n";
+                            continue;
+                        } else if (code == "433") {
+                            cout << "There is no seat left of that seat class.\n";
+                            continue;
+                        } else if (code == "434") {
+                            cout << "Error booking flight ticket.\n";
+                            continue;
+                        } else {
+                            cout << "Unexpected server response: " << response << endl;
+                            continue;
+                        }
+                        
                     }
  
                     else if (lower_choice1 == "8")
@@ -233,9 +316,6 @@ int main()
                     {
                         std::cout << "Can't find the flight!\n";
                     }
-                    
-
-
                 }
             }
             else if (response == "402/")

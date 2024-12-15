@@ -1,6 +1,9 @@
 #include <iostream>
 #include <cstring>
 #include <string>
+#include <sstream>
+#include <regex>
+#include <unordered_map>
 #include <thread>
 #include <unistd.h>
 #include <sys/socket.h>
@@ -107,25 +110,25 @@ string lower(const string &input)
 
     return result;
 }
-// string generate_ticket_code()
-// {
-//     srand(time(NULL));
+string generate_ticket_code()
+{
+    srand(time(NULL));
 
-//     const string alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-//     const int alphabet_length = alphabet.length();
+    const string alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    const int alphabet_length = alphabet.length();
 
-//     string ticket_code;
+    string ticket_code;
 
-//     for (int i = 0; i < 3; ++i)
-//     {
-//         ticket_code += alphabet[rand() % alphabet_length];
-//     }
-//     for (int i = 0; i < 3; ++i)
-//     {
-//         ticket_code += to_string(rand() % 10);
-//     }
-//     return ticket_code;
-// }
+    for (int i = 0; i < 3; ++i)
+    {
+        ticket_code += alphabet[rand() % alphabet_length];
+    }
+    for (int i = 0; i < 3; ++i)
+    {
+        ticket_code += to_string(rand() % 10);
+    }
+    return ticket_code;
+}
 std::string checknoti(int client_socket)
 {
     string notification;
@@ -150,9 +153,9 @@ void search_flight1(int client_socket, const string &departure_point, const stri
 void functions(int client_socket, const User &user);
 void connect_client(int client_socket);
 // void admin_mode(int client_socket);
-// void book_flight(int client_socket, const string flight_num, const string seat_class, const User &user);
+void book_flight(int client_socket, const string flight_num, const string seat_class, const User &user);
 // void cancel_flight(int client_socket, const string ticket_code, const User &user);
-// void update_seat_count(sqlite3 *db, const string &flight_num, const string &seat_class, int adjustment);
+void update_seat_count(sqlite3 *db, const string &flight_num, const string &seat_class, int adjustment);
 // void handle_payment(int client_socket, const string ticket_code, string payment_status);
 // void change_flight(int client_socket, const string ticket_code, const string flight_num_new, const string seat_class_new, const User &user);
 // void print_all(int client_socket, const User &user);
