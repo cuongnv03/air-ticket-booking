@@ -11,102 +11,99 @@
 #include <atomic>
 #include <thread>
 #include <mutex>
-using namespace std;
 #include <chrono>
-
-std::mutex mapMutex;
 
 #define MAXLINE 4096
 #define SERV_PORT 3000
 #define BUFFER_SIZE 2048
 
-void display_search(const string &ticket_data)
-{
+std::mutex mapMutex;
+
+using namespace std;
+
+enum class Role {
+    None,
+    Admin,
+    User
+};
+
+void displaySearchResults(const string &ticketData);
+void printSearchMenu();
+void printMainMenu();
+void printUserFunctions();
+string toLower(const string &input);
+string trimString(const string &input);
+
+// ==================== IMPLEMENTATIONS ====================
+
+void displaySearchResults(const string &ticketData) {
     size_t pos = 0;
-    while (true)
-    {
-        size_t next_pos = ticket_data.find(';', pos);
-        if (next_pos == string::npos)
-        {
+    while (true) {
+        size_t nextPos = ticketData.find(';', pos);
+        if (nextPos == string::npos) {
             break;
         }
-        string ticket_info = ticket_data.substr(pos, next_pos - pos);
+        string ticketInfo = ticketData.substr(pos, nextPos - pos);
 
-        size_t start = 0, end;
+        const char *titles[] = {
+            "Company: ", "Flight Number: ", "Seat Class A: ", "Seat Class B: ",
+            "Price A: ", "Price B: ", "Departure Point: ", "Destination Point: ",
+            "Departure Date: ", "Return Date: "
+        };
+
         cout << "---------------------" << endl;
-        const char *titles[] = {"Company: ", "Flight Number: ", "Seat class A: ", "Seat class B: ", "Price A: ", "Price B: ", "Departure Point: ", "Destination Point: ", "Departure Date: ", "Return Date: "};
-        int field_index = 0;
+        size_t start = 0, end;
+        int fieldIndex = 0;
 
-        while (true)
-        {
-            end = ticket_info.find(',', start);
-            if (end == string::npos)
-            {
-                cout << titles[field_index] << ticket_info.substr(start) << endl;
+        while (true) {
+            end = ticketInfo.find(',', start);
+            if (end == string::npos) {
+                cout << titles[fieldIndex] << ticketInfo.substr(start) << endl;
                 break;
             }
-            string field = ticket_info.substr(start, end - start);
-            cout << titles[field_index++] << field << endl;
+            cout << titles[fieldIndex++] << ticketInfo.substr(start, end - start) << endl;
             start = end + 1;
         }
-        cout << "---------------------" << endl;
 
-        pos = next_pos + 1;
+        cout << "---------------------" << endl;
+        pos = nextPos + 1;
     }
 }
 
-void print_menu_search()
-{
-    std::cout << "1. Search based on departure point, destination point\n";
-    std::cout << "2. Search based on departure point, destination point, departure date\n";
-    std::cout << "3. Search based on departure point, destination point, return date\n";
-    std::cout << "4. Search based on departure point, destination point, departure date, return date\n";
-    std::cout << "5. Exit\n";
-    std::cout << "Your choice(1-5): ";
+void printSearchMenu() {
+    cout << "1. Search based on departure point and destination point.\n"
+         << "2. Search based on departure point, destination point, and departure date.\n"
+         << "3. Search based on departure point, destination point, and return date.\n"
+         << "4. Search based on departure point, destination point, departure date, and return date.\n"
+         << "5. Compare by sorting based on departure point, destination point, departure date and price \n"
+         << "6. Exit.\n"
+         << "Your choice (1-6): ";
 }
-string lower(const string &input)
-{
-    string result = input;
 
-    for (char &c : result)
-    {
+void printMainMenu() {
+    cout << "\n__________________________________________________\n"
+         << "1. Login\n2. Register\n3. Exit\nYour choice: ";
+}
+
+void printUserFunctions() {
+    cout << "\n__________________________________________________\n"
+         << "1. Search Flights\n2. Book Tickets\n3. View Ticket Details\n4. Cancel Tickets\n"
+         << "5. Change Tickets\n6. Print Tickets\n7. Ticket Payment\n8. Log Out\n"
+         << "__________________________________________________\nYour choice: ";
+}
+
+string toLower(const string &input) {
+    string result = input;
+    for (char &c : result) {
         c = tolower(c);
     }
-
     return result;
 }
-enum class Role
-{
-    none,
-    admin,
-    user
-};
-void print_functions()
-{
-    std::cout << "__________________________________________________\n";
-    std::cout << "1. Search Flights\n2. Book tickets\n3. View tickets detail\n4. Cancel tickets\n5. Change tickets\n6. Print tickets\n7. Ticket payment\n8. Log out" << endl;
-    std::cout << "__________________________________________________\n";
-    std::cout << "Your message: ";
-}
-// void print_admin_menu()
-// {
-//     std::cout << "__________________________________________________\n";
-//     std::cout << "1. Add flight\n2. Delete flight\n3. Modify flight\n4. Logout" << endl;
-//     std::cout << "__________________________________________________\n";
-//     std::cout << "Your message: ";
-// }
-void print_main_menu()
-{
-    std::cout << "__________________________________________________\n";
-    std::cout << "1. Login\n2. Register\n3. Exit\nYour message: ";
-}
-std::string trim(std::string str)
-{
-    size_t endpos = str.find_last_not_of(" \t");
 
-    if (std::string::npos != endpos)
-    {
-        str = str.substr(0, endpos + 1);
+string trimString(const string &input) {
+    size_t endPos = input.find_last_not_of(" \t");
+    if (endPos != string::npos) {
+        return input.substr(0, endPos + 1);
     }
-    return str;
+    return input;
 }
