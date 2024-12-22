@@ -899,6 +899,7 @@ void changeTicket(int clientSocket, const std::string& ticketId, const std::stri
 
     if (sqlite3_prepare_v2(db, newQuerySeat.c_str(), -1, &stmt, nullptr) != SQLITE_OK) {
         cerr << "Error preparing query: " << sqlite3_errmsg(db) << endl;
+        send(clientSocket, "482/", strlen("482/"), 0);
         return;
     }
 
@@ -958,20 +959,22 @@ void changeTicket(int clientSocket, const std::string& ticketId, const std::stri
         }
 
         string newTicketId = generateTicketId();
-        string query = "INSERT INTO Tickets (ticket_code, user_id, flight_num, seat_class, ticket_price, payment) VALUES (?, ?, ?, ?, ?, 'NOT_PAID')";
+        string paymentStatus = "NOT_PAID";
+        string query = "INSERT INTO Tickets (ticket_code, user_id, flight_num, seat_class, ticket_price, payment) VALUES (?, ?, ?, ?, ?, ?)";
         if (sqlite3_prepare_v2(db, query.c_str(), -1, &stmt, nullptr) == SQLITE_OK) {
             sqlite3_bind_text(stmt, 1, newTicketId.c_str(), -1, SQLITE_STATIC);
-            sqlite3_bind_int(stmt, 2, userId);
+            sqlite3_bind_int(stmt, 2, user.userId);
             sqlite3_bind_text(stmt, 3, newFlightId.c_str(), -1, SQLITE_STATIC);
             sqlite3_bind_text(stmt, 4, seatClass.c_str(), -1, SQLITE_STATIC);
             sqlite3_bind_int(stmt, 5, newTicketPrice);
+            sqlite3_bind_text(stmt, 6, paymentStatus.c_str(), -1, SQLITE_STATIC);
             if (sqlite3_step(stmt) == SQLITE_DONE) {
                 // Calculate price difference
                 int priceDifference = newTicketPrice - oldPrice;
                 if (priceDifference > 0) {
                     // Notify the client to pay the additional amount
                     cout << "Process change and redirect to payment\n";
-                    msg = "381/" + newTicketId + "/" + to_string(priceDifference);
+                    msg = "381/" + newTicketId + "/" + to_string(priceDifference) + "/";
                     cout << "Send: " << msg << " -> " << user.username << "\n";
                     send(clientSocket, msg.c_str(), msg.length(), 0);
                     updateSeatCount(db, newFlightId, seatClass, 1);
@@ -979,7 +982,7 @@ void changeTicket(int clientSocket, const std::string& ticketId, const std::stri
                 } else {
                     // Notify the client about the refund amount
                     cout << "Process change and redirect to refund\n";
-                    msg = "382/" + newTicketId + "/" + to_string(-priceDifference);
+                    msg = "382/" + newTicketId + "/" + to_string(-priceDifference) + "/";
                     cout << "Send: " << msg << " -> " << user.username << "\n";
                     send(clientSocket, msg.c_str(), msg.length(), 0);
                     updateSeatCount(db, newFlightId, seatClass, 1);
@@ -1082,8 +1085,8 @@ void processRefundForChange(int clientSocket, const string& ticketId, const int 
     }
 }
 
-void view_ticket(int client_socket, const User &user) {
-    string notification = checkNotifications(client_socket);
+void view_ticket(int clientSocket, const User &user) {
+    string notification = checkNotifications(clientSocket);
     string message;
     sqlite3_stmt *stmt;
 
@@ -1100,7 +1103,7 @@ void view_ticket(int client_socket, const User &user) {
         message = "451/" + notification;
         cerr << "Error preparing query: " << sqlite3_errmsg(db) << endl;
         cout << "Send: " << message << " -> " << user.username << "\n";
-        send(client_socket, message.c_str(), message.length(), 0);
+        send(clientSocket, message.c_str(), message.length(), 0);
         return;
     }
 
@@ -1130,11 +1133,6 @@ void view_ticket(int client_socket, const User &user) {
         flight.departurePoint = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 8));
         flight.destinationPoint = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 9));
 
-        // Định dạng giá vé
-        stringstream ss;
-        ss << fixed << setprecision(2) << ticket.ticketPrice;
-        string formatted_price = ss.str();
-
         // Tạo chuỗi kết quả
         result_str += ticket.ticketId + ",";
         result_str += ticket.flightId + ",";
@@ -1144,7 +1142,7 @@ void view_ticket(int client_socket, const User &user) {
         result_str += flight.departureDate + ",";
         result_str += flight.returnDate + ",";
         result_str += ticket.seatClass + ",";
-        result_str += formatted_price + " VND,";
+        result_str += to_string(ticket.ticketPrice) + " VND,";
         result_str += ticket.paymentStatus + ";";
     }
 
@@ -1157,18 +1155,18 @@ void view_ticket(int client_socket, const User &user) {
         cout << "Send: " << message << " -> " << user.username << "\n";
         cout << user.username << ": Found no ticket\n";
     } else {
-        message = result_str + notification;
+        message = result_str + notification + "/";
         cout << "Send: " << message << " -> " << user.username << "\n";
     }
 
-    send(client_socket, message.c_str(), message.length(), 0);
+    send(clientSocket, message.c_str(), message.length(), 0);
 }
 
-void print_ticket(int client_socket, const string ticket_code, const User &user)
+void print_ticket(int clientSocket, const string ticket_code, const User &user)
 {
     sqlite3_stmt *stmt;
     string msg;
-    string noti = checkNotifications(client_socket);
+    string noti = checkNotifications(clientSocket);
     int userId =get_user_id_from_username(user.username);
     string query = "SELECT T.ticket_code, T.flight_num, T.seat_class, T.ticket_price, T.payment, F.company, F.departure_date, F.return_date, F.departure_point, F.destination_point "
                    "FROM Tickets T "
@@ -1180,7 +1178,7 @@ void print_ticket(int client_socket, const string ticket_code, const User &user)
         msg = "461/" + noti;
         cerr << "Error preparing query: " << sqlite3_errmsg(db) << endl;
         cout << "Send: " << msg << " ->" << user.username << "\n";
-        send(client_socket, msg.c_str(), msg.length(), 0);
+        send(clientSocket, msg.c_str(), msg.length(), 0);
         return;
     }
 
@@ -1228,13 +1226,13 @@ void print_ticket(int client_socket, const string ticket_code, const User &user)
     {
         msg = "461/" + noti;
         cout << "Send: " << msg << " ->" << user.username << "\n";
-        send(client_socket, msg.c_str(), msg.length(), 0);
+        send(clientSocket, msg.c_str(), msg.length(), 0);
     }
     else
     {
         msg = result_str + noti;
         cout << "Send: " << msg << " ->" << user.username << "\n";
-        send(client_socket, msg.c_str(), msg.length(), 0);
+        send(clientSocket, msg.c_str(), msg.length(), 0);
     }
 }
 

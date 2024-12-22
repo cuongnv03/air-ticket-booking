@@ -15,7 +15,7 @@
 
 #define MAXLINE 4096
 #define SERV_PORT 3000
-#define BUFFER_SIZE 2048
+#define BUFFER_SIZE 8192
 
 std::mutex mapMutex;
 
@@ -121,7 +121,7 @@ void save_tickets_to_file(const string &ticket_data, string ticket_code)
     }
 
     file << "---------------------" << endl;
-    const char *titles[] = {"Flight Number: ", "Ticket Code: ", "Company:", "Departure Point: ", "Destination Point: ", "Departure Date: ", "Return Date: ", "Seat Class: ", "Ticket Price: ", "Paymemt: "};
+    const char *titles[] = {"Flight Number: ", "Ticket Code: ", "Company: ", "Departure Point: ", "Destination Point: ", "Departure Date: ", "Return Date: ", "Seat Class: ", "Ticket Price: ", "Paymemt: "};
     size_t start = 0, end;
     int field_index = 0;
     while ((end = ticket_data.find(',', start)) != string::npos)

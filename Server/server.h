@@ -28,7 +28,7 @@ using namespace std;
 
 // Constants
 #define PORT 3000
-#define BUFFER_SIZE 1024
+#define BUFFER_SIZE 8192
 
 // Mutex for thread safety
 std::map<int, string> clientNotifMap; // Map to store notifications for clients

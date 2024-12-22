@@ -280,14 +280,15 @@ int main() {
                         recv(clientSocket, buffer, BUFFER_SIZE, 0);
                         string viewResponse(buffer);
                         istringstream viewResponseStream(viewResponse);
-                        string viewResponseCode;
+                        string viewResponseCode, ticketData;
                         getline(viewResponseStream, viewResponseCode, '/');
                         if (viewResponseCode == "350"){
-                            string ticketData = viewResponse.substr(4);
+                            getline(viewResponseStream, ticketData, '/');
                             cout << "Your tickets: " << endl;
                             displaySearchResults(ticketData);
+                            
                         } else if (viewResponseCode == "451"){
-                            cout << "No tickets found." << endl;
+                            cout << "No tickets found." << endl; 
                         } else {
                             cout << "Unexpected server response: " << viewResponse << endl;
                         }
@@ -358,7 +359,11 @@ int main() {
                         send(clientSocket, changeRequest.c_str(), changeRequest.length(), 0);
 
                         memset(buffer, 0, BUFFER_SIZE);
-                        recv(clientSocket, buffer, BUFFER_SIZE, 0);
+                        int bytesReceived = recv(clientSocket, buffer, BUFFER_SIZE, 0);
+                        if (bytesReceived <= 0){
+                            break;
+                        }
+                        buffer[bytesReceived] = '\0';
                         string changeResponse(buffer);
                         istringstream changeResponseStream(changeResponse);
                         string changeResponseCode, priceDiff;
@@ -390,12 +395,12 @@ int main() {
                             if (payResponseCode == "341" || payResponseCode == "342"){
                                 cout << "You have paid more " << priceDiff << " successfully with " << paymentMethod << " " << paymentDetails << endl;
                                 cout << "Ticket changed successfully! Your new ticket ID is " << ticketId << endl;
-                                continue;
+                                
                             } else {
                                 cout << "Error payment for ticket." << endl;
-                                continue;
+                                
                             }
-                            continue;
+                            
                         } else if (changeResponseCode == "382") {
                             // Parse the additional payment request
                             getline(changeResponseStream, ticketId, '/');
@@ -421,15 +426,15 @@ int main() {
                             if (refundResponseCode == "391" || refundResponseCode == "392"){
                                 cout << "You have been refunded " << priceDiff << " successfully with " << paymentMethod << " " << paymentDetails << endl;
                                 cout << "Ticket changed successfully! Your new ticket ID is " << ticketId << endl;
-                                continue;
+                                
                             } else {
                                 cout << "Error payment for ticket." << endl;
-                                continue;
+                                
                             }
-                            continue;
-                        } else if (changeResponse == "481/") {
+                            
+                        } else if (changeResponseCode == "481") {
                             cout << "You do not own this ticket or it does not exist." << endl;
-                        } else if (changeResponse == "482/") {
+                        } else if (changeResponseCode == "482") {
                             cout << "Invalid input for ticket change." << endl;
                         } else {
                             cout << "Unexpected server response: " << changeResponse << endl;
