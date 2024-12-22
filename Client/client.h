@@ -31,6 +31,7 @@ void displaySearchResults(const string &ticketData);
 void printSearchMenu();
 void printMainMenu();
 void printUserFunctions();
+void save_tickets_to_file(const string &ticket_data, string ticket_code);
 string toLower(const string &input);
 string trimString(const string &input);
 
@@ -106,4 +107,36 @@ string trimString(const string &input) {
         return input.substr(0, endPos + 1);
     }
     return input;
+}
+void save_tickets_to_file(const string &ticket_data, string ticket_code)
+{
+    string filename = ticket_code + ".txt";
+    string file_folder = "Ticket/" + filename;
+    ofstream file(file_folder);
+
+    if (!file.is_open())
+    {
+        cerr << "Failed to open file for writing." << endl;
+        return;
+    }
+
+    file << "---------------------" << endl;
+    const char *titles[] = {"Flight Number: ", "Ticket Code: ", "Company:", "Departure Point: ", "Destination Point: ", "Departure Date: ", "Return Date: ", "Seat Class: ", "Ticket Price: ", "Paymemt: "};
+    size_t start = 0, end;
+    int field_index = 0;
+    while ((end = ticket_data.find(',', start)) != string::npos)
+    {
+        string field = ticket_data.substr(start, end - start);
+        file << titles[field_index++] << field << endl; // Writes each field with a title
+        start = end + 1;
+    }
+    if (field_index < 10)
+    {
+        file << titles[field_index] << ticket_data.substr(start) << endl;
+    }
+
+    file << "---------------------" << endl;
+
+    file.close();
+    cout << "Ticket information saved to " << file_folder << endl;
 }
