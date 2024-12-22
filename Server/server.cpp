@@ -1296,6 +1296,12 @@ void handleUserFunctions(int clientSocket, const User &user) {
         else if (requestParts[0] == "print") {
             print_ticket(clientSocket, requestParts[1], user);
         }
+        else if (requestParts[0] == "view") {
+            view_ticket(clientSocket, user);
+        }
+        else if (requestParts[0] == "print") {
+            print_ticket(clientSocket, requestParts[1], user);
+        }
     }
 }
 int get_user_id_from_username(const std::string &username) {

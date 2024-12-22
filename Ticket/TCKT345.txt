@@ -1,0 +1,12 @@
+---------------------
+Flight Number: TCKT345
+Ticket Code: MNO345
+Company:VietJettAir
+Departure Point: ThanhHoa
+Destination Point: KhanhHoa
+Departure Date: 2023-02-10 09:45
+Return Date: 2023-02-10 09:45
+Seat Class: A
+Ticket Price: 300.000 VND
+Paymemt: NOT_PAID;
+---------------------
