@@ -158,8 +158,11 @@ void handleUserFunctions(int clientSocket, const User& user);
 
 // Payment and Ticket Management Functions
 void processPayment(int clientSocket, const string& ticketId, const string &paymentMethod, const string &paymentDetails, const User& user);
-// void cancelTicket(int clientSocket, const string& ticketId, const User& user);
-// void changeTicket(int clientSocket, const string& ticketId, const string& newFlightId, const string& newSeatClass, const User& user);
+void processRefund(int clientSocket, const string& ticketId, const string &paymentMethod, const string &paymentDetails, const User& user);
+void processPaymentForChange(int clientSocket, const string& ticketId, const string &paymentMethod, const string &paymentDetails, const User& user);
+void processRefundForChange(int clientSocket, const string& ticketId, const string &paymentMethod, const string &paymentDetails, const User& user);
+void cancelTicket(int clientSocket, const string& ticketId, const User& user);
+void changeTicket(int clientSocket, const string& ticketId, const string& newFlightId, const string& newSeatClass, const User& user);
 // void printTicket(int clientSocket, const string& ticketId, const User& user);
 // void viewTickets(int clientSocket, const User& user);
 // bool flightIdExists(const string& flightId);

@@ -63,7 +63,15 @@
     "xstring": "cpp",
     "xtr1common": "cpp",
     "xutility": "cpp",
-    "regex": "cpp"
+    "regex": "cpp",
+    "algorithm": "cpp",
+    "array": "cpp",
+    "deque": "cpp",
+    "map": "cpp",
+    "queue": "cpp",
+    "ranges": "cpp",
+    "span": "cpp",
+    "xtree": "cpp"
   },
   "C_Cpp.clang_format_fallbackStyle": "Microsoft",
   "C_Cpp.formatting": "clangFormat"

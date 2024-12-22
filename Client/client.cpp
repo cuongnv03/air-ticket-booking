@@ -180,7 +180,6 @@ int main() {
                             int searchResponse = recv(clientSocket, buffer, BUFFER_SIZE, 0);
                             if (searchResponse > 0) {
                                 buffer[searchResponse] = '\0';
-                                displaySearchResults(string(buffer));
                                 if (string(buffer).find("311/") == 0) {
                                     string flightData = string(buffer).substr(8);
                                     cout << "Search results:" << endl;
@@ -274,6 +273,150 @@ int main() {
                             cout << "Unexpected server response: " << bookResponse << endl;
                             continue;
                         }
+                    } else if (trimmedUserChoice == "4") { // Cancel Ticket
+                        string ticketId;
+                        cout << "Enter the ticket ID to cancel: ";
+                        getline(cin, ticketId);
+
+                        string cancelRequest = "CANCEL/" + ticketId;
+                        send(clientSocket, cancelRequest.c_str(), cancelRequest.length(), 0);
+
+                        memset(buffer, 0, BUFFER_SIZE);
+                        recv(clientSocket, buffer, BUFFER_SIZE, 0);
+                        string cancelResponse(buffer);
+                        istringstream cancelResponseStream(cancelResponse);
+                        string cancelResponseCode, ticketPrice;
+                        getline(cancelResponseStream, cancelResponseCode, '/');
+
+                        if (cancelResponseCode == "390") {
+                            // Parse cancellation response
+                            getline(cancelResponseStream, ticketId, '/');
+                            getline(cancelResponseStream, ticketPrice, '/');
+
+                            // Prompt user for refund details
+                            string paymentMethod, paymentDetails;
+                            cout << "To confirm cancellation of flight ticket with ticket ID: "
+                            << ticketId << ", please provide refund details.\n";
+                            cout << "Ticket Price to be refunded: " << ticketPrice << " VND\n";
+                            cout << "Enter payment method (Card/E-Wallet): ";
+                            getline(cin, paymentMethod);
+                            
+                            cout << "Enter payment details: ";
+                            getline(cin, paymentDetails);
+
+                            string refundRequest = "REFUND/" + ticketId + "/" + ticketPrice + "/"+ paymentMethod + "/" + paymentDetails;
+                            send(clientSocket, refundRequest.c_str(), refundRequest.length(), 0);
+
+                            memset(buffer, 0, BUFFER_SIZE);
+                            recv(clientSocket, buffer, BUFFER_SIZE, 0);
+                            string refundResponse(buffer);
+
+                            if (refundResponse == "391/") {
+                                cout << "Your ticket has been successfully canceled and refunded." << endl;
+                            } else if (refundResponse == "442/") {
+                                cout << "Invalid refund details. Please try again." << endl;
+                            } else if (refundResponse == "443/") {
+                                cout << "Error processing refund. Please try again." << endl;
+                            } else {
+                                cout << "Unexpected server response: " << refundResponse << endl;
+                            }
+                        } else if (cancelResponse == "491/") {
+                            cout << "You do not own this ticket or it does not exist." << endl;
+                        } else if (cancelResponse == "493/") {
+                            cout << "Invalid ticket cancellation request." << endl;
+                        } else {
+                            cout << "Unexpected server response: " << cancelResponse << endl;
+                        }
+                    } else if (trimmedUserChoice == "5") { // Change Ticket
+                        string ticketId, newFlightId, seatClass;
+                        cout << "Enter your current ticket ID: ";
+                        getline(cin, ticketId);
+                        cout << "Enter new flight ID: ";
+                        getline(cin, newFlightId);
+                        cout << "Enter seat class (A/B): ";
+                        getline(cin, seatClass);
+
+                        string changeRequest = "CHANGE/" + ticketId + "/" + newFlightId + "/" + seatClass;
+                        send(clientSocket, changeRequest.c_str(), changeRequest.length(), 0);
+
+                        memset(buffer, 0, BUFFER_SIZE);
+                        recv(clientSocket, buffer, BUFFER_SIZE, 0);
+                        string changeResponse(buffer);
+                        istringstream changeResponseStream(changeResponse);
+                        string changeResponseCode, priceDiff;
+                        getline(changeResponseStream, changeResponseCode, '/');
+
+                        if (changeResponseCode == "381") {
+                            // Parse the additional payment request
+                            getline(changeResponseStream, ticketId, '/');
+                            getline(changeResponseStream, priceDiff, '/');
+
+                            cout << "You need to pay an additional " << priceDiff << " VND to change your ticket with new ticket ID: "
+                            << ticketId <<".\n";
+                            string paymentMethod, paymentDetails;
+                            cout << "Enter payment method (Card/E-Wallet): ";
+                            getline(cin, paymentMethod);
+                            
+                            cout << "Enter payment details: ";
+                            getline(cin, paymentDetails);
+
+                            string payRequest = "PAYC/" + ticketId + "/" + priceDiff + "/" + paymentMethod + "/" + paymentDetails;
+                            send(clientSocket, payRequest.c_str(), payRequest.length(), 0);
+
+                            memset(buffer, 0, BUFFER_SIZE);
+                            recv(clientSocket, buffer, BUFFER_SIZE, 0);
+                            string payResponse(buffer);
+                            istringstream payResponseStream(payResponse);
+                            string payResponseCode;
+                            getline(payResponseStream, payResponseCode, '/');
+                            if (payResponseCode == "341" || payResponseCode == "342"){
+                                cout << "You have paid more " << priceDiff << " successfully with " << paymentMethod << " " << paymentDetails << endl;
+                                cout << "Ticket changed successfully! Your new ticket ID is " << ticketId << endl;
+                                continue;
+                            } else {
+                                cout << "Error payment for ticket." << endl;
+                                continue;
+                            }
+                            continue;
+
+                        } else if (changeResponseCode == "382") {
+                            // Parse the additional payment request
+                            getline(changeResponseStream, ticketId, '/');
+                            getline(changeResponseStream, priceDiff, '/');
+                            cout << "You will be refunded " << priceDiff << " VND for changing your ticket with new ticket ID: "
+                            << ticketId << ".\n";
+                            string paymentMethod, paymentDetails;
+                            cout << "Enter refund method (Card/E-Wallet): ";
+                            getline(cin, paymentMethod);
+                            
+                            cout << "Enter refund details: ";
+                            getline(cin, paymentDetails);
+
+                            string refundRequest = "REFUNDC/" + ticketId + "/" + priceDiff + "/" + paymentMethod + "/" + paymentDetails;
+                            send(clientSocket, refundRequest.c_str(), refundRequest.length(), 0);
+
+                            memset(buffer, 0, BUFFER_SIZE);
+                            recv(clientSocket, buffer, BUFFER_SIZE, 0);
+                            string refundResponse(buffer);
+                            istringstream refundResponseStream(refundResponse);
+                            string refundResponseCode;
+                            getline(refundResponseStream, refundResponseCode, '/');
+                            if (refundResponseCode == "391" || refundResponseCode == "392"){
+                                cout << "You have been refunded " << priceDiff << " successfully with " << paymentMethod << " " << paymentDetails << endl;
+                                cout << "Ticket changed successfully! Your new ticket ID is " << ticketId << endl;
+                                continue;
+                            } else {
+                                cout << "Error payment for ticket." << endl;
+                                continue;
+                            }
+                            continue;
+                        } else if (changeResponse == "481/") {
+                            cout << "You do not own this ticket or it does not exist." << endl;
+                        } else if (changeResponse == "482/") {
+                            cout << "Invalid input for ticket change." << endl;
+                        } else {
+                            cout << "Unexpected server response: " << changeResponse << endl;
+                        }
                     } else {
                         cout << "Invalid choice!" << endl;
                     }
@@ -283,9 +426,9 @@ int main() {
             } else if (response == "402/") {
                 cout << "Login failed. Please check your username and password." << endl;
             }
-            close(clientSocket);
-            cout << "Connection closed." << endl;
         }
+        close(clientSocket);
+        cout << "Connection closed." << endl;
     } catch (const exception &e) {
         cerr << "Error: " << e.what() << endl;
         return 1;
