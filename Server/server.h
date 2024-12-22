@@ -177,6 +177,6 @@ void changeTicket(int clientSocket, const string& ticketId, const string& newFli
 // void notifyUsers(const vector<int>& affectedUserIds, const string& notification, int c);
 // pair<string, string> getOldDates(const string &flightId);
 // std::vector<int> getAffectedUserId(const std::string &flightId);
-// std::string getUsernameFromId(int userId);
+int get_user_id_from_username(const std::string &username);
 
 #endif // SERVER_H

@@ -233,7 +233,7 @@ void searchFlight1(int clientSocket, const string &departurePoint, const string 
         send(clientSocket, msg.c_str(), msg.length(), 0);
         return;
     }
-
+    printf("userid: %d\n", user.userId);
     sqlite3_bind_text(stmt, 1, departurePoint.c_str(), -1, SQLITE_STATIC);
     sqlite3_bind_text(stmt, 2, destinationPoint.c_str(), -1, SQLITE_STATIC);
 
@@ -1079,6 +1079,159 @@ void processRefundForChange(int clientSocket, const string& ticketId, const int 
         msg = "391/";
         cout << "Send: " << msg << " ->" << user.username << "\n";
         send(clientSocket, msg.c_str(), msg.length(), 0);
+void view_ticket(int client_socket, const User &user) {
+    string notification = checkNotifications(client_socket);
+    string message;
+    sqlite3_stmt *stmt;
+
+    // Câu truy vấn lấy thông tin vé của người dùng
+    string query = "SELECT T.ticket_code, T.flight_num, T.seat_class, T.ticket_price, T.payment, F.company, F.departure_date, F.return_date, F.departure_point, F.destination_point "
+                           "FROM Tickets T "
+                           "JOIN Flights F ON T.flight_num = F.flight_num "
+                           "JOIN Users U ON T.user_id = U.user_id "
+                           "WHERE U.username = ?";
+
+
+    // Chuẩn bị truy vấn
+    if (sqlite3_prepare_v2(db, query.c_str(), -1, &stmt, nullptr) != SQLITE_OK) {
+        message = "451/" + notification;
+        cerr << "Error preparing query: " << sqlite3_errmsg(db) << endl;
+        cout << "Send: " << message << " -> " << user.username << "\n";
+        send(client_socket, message.c_str(), message.length(), 0);
+        return;
+    }
+
+    // Gắn username vào truy vấn
+      sqlite3_bind_text(stmt, 1, user.username.c_str(), -1, SQLITE_STATIC);
+    // printf("username: %s\n", user.username);
+    string result_str = "350/";
+    bool found = false;
+
+    // Duyệt qua các kết quả trả về từ truy vấn
+    while (sqlite3_step(stmt) == SQLITE_ROW) {
+        found = true;
+
+        // Ánh xạ dữ liệu vé và chuyến bay
+        Ticket ticket;
+        Flight flight;
+
+        ticket.ticketId = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 0));
+        ticket.flightId = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 1));
+        ticket.seatClass = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 2));
+        ticket.ticketPrice = sqlite3_column_double(stmt, 3);
+        ticket.paymentStatus = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 4));
+
+        flight.company = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 5));
+        flight.departureDate = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 6));
+        flight.returnDate = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 7));
+        flight.departurePoint = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 8));
+        flight.destinationPoint = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 9));
+
+        // Định dạng giá vé
+        stringstream ss;
+        ss << fixed << setprecision(2) << ticket.ticketPrice;
+        string formatted_price = ss.str();
+
+        // Tạo chuỗi kết quả
+        result_str += ticket.ticketId + ",";
+        result_str += ticket.flightId + ",";
+        result_str += flight.company + ",";
+        result_str += flight.departurePoint + ",";
+        result_str += flight.destinationPoint + ",";
+        result_str += flight.departureDate + ",";
+        result_str += flight.returnDate + ",";
+        result_str += ticket.seatClass + ",";
+        result_str += formatted_price + " VND,";
+        result_str += ticket.paymentStatus + ";";
+    }
+
+    // Giải phóng bộ nhớ của câu truy vấn
+    sqlite3_finalize(stmt);
+
+    // Gửi kết quả hoặc thông báo không tìm thấy vé
+    if (!found) {
+        message = "451/" + notification;
+        cout << "Send: " << message << " -> " << user.username << "\n";
+        cout << user.username << ": Found no ticket\n";
+    } else {
+        message = result_str + notification;
+        cout << "Send: " << message << " -> " << user.username << "\n";
+    }
+
+    send(client_socket, message.c_str(), message.length(), 0);
+}
+
+void print_ticket(int client_socket, const string ticket_code, const User &user)
+{
+    sqlite3_stmt *stmt;
+    string msg;
+    string noti = checkNotifications(client_socket);
+    int userId =get_user_id_from_username(user.username);
+    string query = "SELECT T.ticket_code, T.flight_num, T.seat_class, T.ticket_price, T.payment, F.company, F.departure_date, F.return_date, F.departure_point, F.destination_point "
+                   "FROM Tickets T "
+                   "JOIN Flights F ON T.flight_num = F.flight_num "
+                   "WHERE T.ticket_code = ? AND T.user_id = ?";
+
+    if (sqlite3_prepare_v2(db, query.c_str(), -1, &stmt, nullptr) != SQLITE_OK)
+    {
+        msg = "461/" + noti;
+        cerr << "Error preparing query: " << sqlite3_errmsg(db) << endl;
+        cout << "Send: " << msg << " ->" << user.username << "\n";
+        send(client_socket, msg.c_str(), msg.length(), 0);
+        return;
+    }
+
+    sqlite3_bind_text(stmt, 1, ticket_code.c_str(), -1, SQLITE_STATIC);
+    sqlite3_bind_int(stmt, 2, userId);
+    string result_str = "360/";
+    bool found = false;
+
+    while (sqlite3_step(stmt) == SQLITE_ROW)
+    {
+        found = true;
+        Ticket ticket;
+        Flight flight;
+        ticket.ticketId = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 0));
+        ticket.flightId = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 1));
+        ticket.seatClass = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 2));
+        ticket.ticketPrice = sqlite3_column_int(stmt, 3);
+        ticket.paymentStatus = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 4));
+        flight.company = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 5));
+        flight.departureDate = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 6));
+        flight.returnDate = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 7));
+        flight.departurePoint = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 8));
+        flight.destinationPoint = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 9));
+
+        stringstream ss;
+        ss << ticket.ticketPrice;
+        string str = ss.str();
+        string str_ticket_price = str.substr(0, 3) + "." + str.substr(3, 3);
+
+         result_str += ticket.ticketId + ",";
+        result_str += ticket.flightId + ",";
+        result_str += flight.company + ",";
+        result_str += flight.departurePoint + ",";
+        result_str += flight.destinationPoint + ",";
+        result_str += flight.departureDate + ",";
+        result_str += flight.returnDate + ",";
+        result_str += ticket.seatClass + ",";
+        result_str += str_ticket_price + " VND" + ",";
+        result_str += ticket.paymentStatus + ";";
+    }
+
+    sqlite3_finalize(stmt);
+
+    if (!found)
+    {
+        msg = "461/" + noti;
+        cout << "Send: " << msg << " ->" << user.username << "\n";
+        send(client_socket, msg.c_str(), msg.length(), 0);
+    }
+    else
+    {
+        msg = result_str + noti;
+        cout << "Send: " << msg << " ->" << user.username << "\n";
+        send(client_socket, msg.c_str(), msg.length(), 0);
     }
 }
 
@@ -1137,5 +1290,32 @@ void handleUserFunctions(int clientSocket, const User &user) {
         } else if (requestParts[0] == "REFUNDC") {
             processRefundForChange(clientSocket, requestParts[1], stoi(requestParts[2]), requestParts[3], requestParts[4], user);
         }
+        else if (requestParts[0] == "view") {
+            view_ticket(clientSocket, user);
+        }
+        else if (requestParts[0] == "print") {
+            print_ticket(clientSocket, requestParts[1], user);
+        }
     }
+}
+int get_user_id_from_username(const std::string &username) {
+    sqlite3_stmt *stmt;
+    int user_id = -1; // Giá trị mặc định nếu không tìm thấy user
+    std::string query = "SELECT user_id FROM Users WHERE username = ?";
+
+    if (sqlite3_prepare_v2(db, query.c_str(), -1, &stmt, nullptr) == SQLITE_OK) {
+        sqlite3_bind_text(stmt, 1, username.c_str(), -1, SQLITE_STATIC);
+
+        if (sqlite3_step(stmt) == SQLITE_ROW) {
+            user_id = sqlite3_column_int(stmt, 0);
+        } else {
+            std::cerr << "User not found for username: " << username << std::endl;
+        }
+
+        sqlite3_finalize(stmt);
+    } else {
+        std::cerr << "SQL error: " << sqlite3_errmsg(db) << std::endl;
+    }
+
+    return user_id;
 }
