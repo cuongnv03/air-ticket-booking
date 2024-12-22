@@ -726,7 +726,6 @@ void processPayment(int clientSocket, const string &ticketId, const int &ticketP
     }
 }
 
-<<<<<<< HEAD
 void cancelTicket(int clientSocket, const std::string& ticketId, const User& user) {
     sqlite3_stmt *stmt;
     string msg;
@@ -1080,8 +1079,9 @@ void processRefundForChange(int clientSocket, const string& ticketId, const int 
         msg = "391/";
         cout << "Send: " << msg << " ->" << user.username << "\n";
         send(clientSocket, msg.c_str(), msg.length(), 0);
-=======
->>>>>>> 7cfe4786e4ed698b9464b03ab9f346a165141aa1
+    }
+}
+
 void view_ticket(int client_socket, const User &user) {
     string notification = checkNotifications(client_socket);
     string message;
