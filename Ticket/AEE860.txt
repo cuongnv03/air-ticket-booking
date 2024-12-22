@@ -1,0 +1,12 @@
+---------------------
+Flight Number: LNN442
+Ticket Code: ABC123
+Company:VietJettAir
+Departure Point: CaMau
+Destination Point: Vinh
+Departure Date: 2023-01-15 08:00
+Return Date: 2023-01-20 19:30
+Seat Class: A
+Ticket Price: 300.000 VND
+Paymemt: PAID;
+---------------------
