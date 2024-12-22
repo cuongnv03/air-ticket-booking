@@ -273,7 +273,46 @@ int main() {
                             cout << "Unexpected server response: " << bookResponse << endl;
                             continue;
                         }
-                    } else if (trimmedUserChoice == "4") { // Cancel Ticket
+                    } else if (trimmedUserChoice == "3") //view ticket
+                    {
+                        string viewRequest = "view/";
+                        send(clientSocket, viewRequest.c_str(), viewRequest.length(), 0);
+                        memset(buffer, 0, BUFFER_SIZE);
+                        recv(clientSocket, buffer, BUFFER_SIZE, 0);
+                        string viewResponse(buffer);
+                        istringstream viewResponseStream(viewResponse);
+                        string viewResponseCode;
+                        getline(viewResponseStream, viewResponseCode, '/');
+                        if (viewResponseCode == "350"){
+                            string ticketData = viewResponse.substr(4);
+                            cout << "Your tickets: " << endl;
+                            displaySearchResults(ticketData);
+                        } else if (viewResponseCode == "451"){
+                            cout << "No tickets found." << endl;
+                        } else {
+                            cout << "Unexpected server response: " << viewResponse << endl;
+                        }
+                    }
+                    else if(trimmedUserChoice == "6")//print ticket
+                    {
+                        cout << "Enter ticket code: ";
+                        string ticket_code;
+                        getline(cin, ticket_code);
+                        string printtRequest = "print/" + ticket_code;
+                        send(clientSocket, printtRequest.c_str(), printtRequest.length(), 0);
+                        memset(buffer, 0, BUFFER_SIZE);
+                        recv(clientSocket, buffer, BUFFER_SIZE, 0);
+                        string printResponse(buffer);
+                        istringstream printResponseStream(printResponse);
+                        string printResponseCode;
+                        getline(printResponseStream, printResponseCode, '/');
+                        if (printResponseCode == "360"){
+                            string ticketData = printResponse.substr(4);
+                            cout << "Ticket saved: " << endl;
+                            save_tickets_to_file(ticketData, ticket_code);
+                        } else if (printResponseCode == "461"){
+                            cout << "Fail to print." << endl;
+                        } else if (trimmedUserChoice == "4") { // Cancel Ticket
                         string ticketId;
                         cout << "Enter the ticket ID to cancel: ";
                         getline(cin, ticketId);
@@ -418,6 +457,10 @@ int main() {
                             cout << "Unexpected server response: " << changeResponse << endl;
                         }
                     } else {
+                            cout << "Unexpected server response: " << printResponse << endl;
+                        }
+                    }
+                    else {
                         cout << "Invalid choice!" << endl;
                     }
                 }
