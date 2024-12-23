@@ -707,40 +707,77 @@ void processPayment(int clientSocket, const string &ticketId, const int &ticketP
     string msg;
     sqlite3_stmt *stmt;
 
-    if ((paymentMethod == "Card" && paymentDetails.length() != 16) ||
-        (paymentMethod == "E-Wallet" && paymentDetails.length() != 10)) {
-        string payResponse = "442/"; // Invalid format
-        send(clientSocket, payResponse.c_str(), payResponse.length(), 0);
-        return;
-    }
-
-    string updatePayment = "UPDATE Tickets SET payment = 'PAID' WHERE ticket_code = ?";
-
-    if (sqlite3_prepare_v2(db, updatePayment.c_str(), -1, &stmt, NULL) != SQLITE_OK) {
-        msg = "443/";
-        cerr << "Error preparing update statement" << endl;
-        cout << "Send: " << msg << " ->" << user.username << "\n";
-        send(clientSocket, msg.c_str(), msg.length(), 0);
-    } else {
-        if (sqlite3_bind_text(stmt, 1, ticketId.c_str(), -1, SQLITE_TRANSIENT) != SQLITE_OK) {
-            msg = "443/";
-            cerr << "Error binding ticket ID to update statement" << endl;
-            cout << "Send: " << msg << " ->" << user.username << "\n";
-            send(clientSocket, msg.c_str(), msg.length(), 0);
+    if (paymentMethod == "Card") {
+        if (paymentDetails.length() != 16) {
+            string payResponse = "441/"; // Invalid format
+            cout << "Send: " << payResponse << " ->" << user.username << "\n";
+            send(clientSocket, payResponse.c_str(), payResponse.length(), 0);
+            return;
         } else {
-            if (sqlite3_step(stmt) != SQLITE_DONE) {
+            string updatePayment = "UPDATE Tickets SET payment = 'PAID' WHERE ticket_code = ?";
+
+            if (sqlite3_prepare_v2(db, updatePayment.c_str(), -1, &stmt, NULL) != SQLITE_OK) {
                 msg = "443/";
-                cerr << "Error executing update statement" << endl;
+                cerr << "Error preparing update statement" << endl;
+                cout << "Send: " << msg << " ->" << user.username << "\n";
+                send(clientSocket, msg.c_str(), msg.length(), 0);
+            } else {
+                if (sqlite3_bind_text(stmt, 1, ticketId.c_str(), -1, SQLITE_TRANSIENT) != SQLITE_OK) {
+                    msg = "443/";
+                    cerr << "Error binding ticket ID to update statement" << endl;
+                    cout << "Send: " << msg << " ->" << user.username << "\n";
+                    send(clientSocket, msg.c_str(), msg.length(), 0);
+                } else {
+                    if (sqlite3_step(stmt) != SQLITE_DONE) {
+                        msg = "443/";
+                        cerr << "Error executing update statement" << endl;
+                        cout << "Send: " << msg << " ->" << user.username << "\n";
+                        send(clientSocket, msg.c_str(), msg.length(), 0);
+                    }
+                }
+                sqlite3_finalize(stmt);
+                msg = "341/";
                 cout << "Send: " << msg << " ->" << user.username << "\n";
                 send(clientSocket, msg.c_str(), msg.length(), 0);
             }
-        }
-        sqlite3_finalize(stmt);
-        msg = "341/";
-        cout << "Send: " << msg << " ->" << user.username << "\n";
-        send(clientSocket, msg.c_str(), msg.length(), 0);
+        } 
+    } else if (paymentMethod == "E-Wallet") {
+        if (paymentDetails.length() != 10) {
+            string payResponse = "442/"; // Invalid format
+            cout << "Send: " << payResponse << " ->" << user.username << "\n";
+            send(clientSocket, payResponse.c_str(), payResponse.length(), 0);
+            return;
+        } else {
+            string updatePayment = "UPDATE Tickets SET payment = 'PAID' WHERE ticket_code = ?";
+
+            if (sqlite3_prepare_v2(db, updatePayment.c_str(), -1, &stmt, NULL) != SQLITE_OK) {
+                msg = "443/";
+                cerr << "Error preparing update statement" << endl;
+                cout << "Send: " << msg << " ->" << user.username << "\n";
+                send(clientSocket, msg.c_str(), msg.length(), 0);
+            } else {
+                if (sqlite3_bind_text(stmt, 1, ticketId.c_str(), -1, SQLITE_TRANSIENT) != SQLITE_OK) {
+                    msg = "443/";
+                    cerr << "Error binding ticket ID to update statement" << endl;
+                    cout << "Send: " << msg << " ->" << user.username << "\n";
+                    send(clientSocket, msg.c_str(), msg.length(), 0);
+                } else {
+                    if (sqlite3_step(stmt) != SQLITE_DONE) {
+                        msg = "443/";
+                        cerr << "Error executing update statement" << endl;
+                        cout << "Send: " << msg << " ->" << user.username << "\n";
+                        send(clientSocket, msg.c_str(), msg.length(), 0);
+                    }
+                }
+                sqlite3_finalize(stmt);
+                msg = "342/";
+                cout << "Send: " << msg << " ->" << user.username << "\n";
+                send(clientSocket, msg.c_str(), msg.length(), 0);
+            }
+        } 
     }
 }
+
 
 void cancelTicket(int clientSocket, const std::string& ticketId, const User& user) {
     sqlite3_stmt *stmt;
