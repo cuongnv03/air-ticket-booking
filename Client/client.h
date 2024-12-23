@@ -37,6 +37,40 @@ string trimString(const string &input);
 
 // ==================== IMPLEMENTATIONS ====================
 
+void displayTicketInformation(const string &ticket_data) {
+    size_t pos = 0;
+    while (true)
+    {
+        size_t next_pos = ticket_data.find(';', pos);
+        if (next_pos == string::npos)
+        {
+            break;
+        }
+        string ticket_info = ticket_data.substr(pos, next_pos - pos);
+
+        size_t start = 0, end;
+        cout << "---------------------" << endl;
+        const char *titles[] = {"Ticket ID: ", "Flight ID: ", "Company: ", "Departure Point: ", "Destination Point: ", "Departure Date: ", "Return Date: ", "Seat Class: ", "Ticket Price: ", "Payment: "};
+        int field_index = 0;
+
+        while (true)
+        {
+            end = ticket_info.find(',', start);
+            if (end == string::npos)
+            {
+                cout << titles[field_index] << ticket_info.substr(start) << endl;
+                break;
+            }
+            string field = ticket_info.substr(start, end - start);
+            cout << titles[field_index++] << field << endl;
+            start = end + 1;
+        }
+        cout << "---------------------" << endl;
+
+        pos = next_pos + 1;
+    }
+}
+
 void displaySearchResults(const string &ticketData) {
     size_t pos = 0;
     while (true) {
@@ -47,7 +81,7 @@ void displaySearchResults(const string &ticketData) {
         string ticketInfo = ticketData.substr(pos, nextPos - pos);
 
         const char *titles[] = {
-            "Company: ", "Flight Number: ", "Seat Class A: ", "Seat Class B: ",
+            "Company: ", "Flight ID: ", "Seat Class A: ", "Seat Class B: ",
             "Price A: ", "Price B: ", "Departure Point: ", "Destination Point: ",
             "Departure Date: ", "Return Date: "
         };
@@ -91,6 +125,14 @@ void printUserFunctions() {
          << "1. Search Flights\n2. Book Tickets\n3. View Ticket Details\n4. Cancel Tickets\n"
          << "5. Change Tickets\n6. Print Tickets\n7. Mail Ticket\n8. Log Out\n"
          << "__________________________________________________\nYour choice: ";
+}
+
+void print_admin_menu()
+{
+    std::cout << "__________________________________________________\n";
+    std::cout << "1. Add flight\n2. Delete flight\n3. Modify flight\n4. Logout" << endl;
+    std::cout << "__________________________________________________\n";
+    std::cout << "Your message: ";
 }
 
 string toLower(const string &input) {

@@ -79,7 +79,7 @@ int main() {
                 while (true) {
                     if (!tmpNotification.empty()) {
                         cout << "Notification:\n" << tmpNotification;
-                        tmpNotification.clear();
+                        tmpNotification = " ";
                     }
 
                     printUserFunctions();
@@ -89,7 +89,7 @@ int main() {
 
                     if (trimmedUserChoice == "8") { // Logout
                         send(clientSocket, "logout", strlen("logout"), 0);
-                        memset(buffer, 0, BUFFER_SIZE);
+                        // memset(buffer, 0, BUFFER_SIZE);
                         int logoutResponse = recv(clientSocket, buffer, BUFFER_SIZE, 0);
                         if (logoutResponse > 0) {
                             buffer[logoutResponse] = '\0';
@@ -285,7 +285,7 @@ int main() {
                         if (viewResponseCode == "350"){
                             getline(viewResponseStream, ticketData, '/');
                             cout << "Your tickets: " << endl;
-                            displaySearchResults(ticketData);
+                            displayTicketInformation(ticketData);
                             
                         } else if (viewResponseCode == "451"){
                             cout << "No tickets found." << endl; 
@@ -496,11 +496,177 @@ int main() {
                     } else {
                         cout << "Invalid choice!" << endl;
                     }
+                    string response1 = string(buffer);
+                    if (response1.find("Y_notif_cancelled") != std::string::npos)
+                    {
+                        size_t pos = response1.find("Y_notif_cancelled");
+                        tmpNotification += "Your flight " + response1.substr(pos + 17, 6) + " has been cancelled\n";
+                    }
+                    if (response1.find("Y_modified1") != std::string::npos)
+                    {
+                        size_t startPos = 0;
+                        while ((startPos = response1.find("Y_modified1", startPos)) != std::string::npos)
+                        {
+                            size_t endPos = response1.find('&', startPos);
+                            if (endPos != std::string::npos)
+                            {
+                                tmpNotification += response1.substr(startPos + 11, endPos - (startPos + 12)) + "\n";
+                                startPos = endPos + 1;
+                            }
+                        }
+                    }
+                    if (response1.find("Y_modified2") != std::string::npos)
+                    {
+                        size_t startPos = 0;
+                        while ((startPos = response1.find("Y_modified2", startPos)) != std::string::npos)
+                        {
+                            size_t endPos = response1.find('&', startPos);
+                            if (endPos != std::string::npos)
+                            {
+                                tmpNotification += response1.substr(startPos + 11, endPos - (startPos + 12)) + "\n";
+                                startPos = endPos + 1;
+                            }
+                        }
+                    }
                 }
             } else if (response == "401/") {
                 cout << "Username already exists. Please try again." << endl;
             } else if (response == "402/") {
                 cout << "Login failed. Please check your username and password." << endl;
+            } else if (response == "Y_admin")
+            {
+                string admin_choice;
+                currentRole = Role::Admin;
+                std::cout << "You're the admin\n";
+                while (true)
+                {
+                    print_admin_menu();
+                    getline(cin, admin_choice);
+                    string lower_choice2 = trimString(toLower(admin_choice));
+
+                    if (lower_choice2 == "1")//add flight
+                    {
+                        string company, flight_num, seat_class_A, seat_class_B, seat_class_A_price, seat_class_B_price, departure_point, destination_point, departure_date, return_date;
+                        std::cout << "Enter the company: ";
+                        getline(cin, company);
+
+                        std::cout << "Enter the flight number: ";
+                        getline(cin, flight_num);
+
+                        std::cout << "Enter the number of seat left for seat class A: ";
+                        getline(cin, seat_class_A);
+
+                        std::cout << "Enter the number of seat left for seat class B: ";
+                        getline(cin, seat_class_B);
+
+                        std::cout << "Enter the price for seat class A: ";
+                        getline(cin, seat_class_A_price);
+
+                        std::cout << "Enter the price for seat class B: ";
+                        getline(cin, seat_class_B_price);
+
+                        std::cout << "Enter the departure point: ";
+                        getline(cin, departure_point);
+
+                        std::cout << "Enter the destination point: ";
+                        getline(cin, destination_point);
+
+                        std::cout << "Enter the departure date: ";
+                        getline(cin, departure_date);
+
+                        std::cout << "Enter the return date: ";
+                        getline(cin, return_date);
+                        string add_msg = "add_flight/" + company + "/" + flight_num + "/" + seat_class_A + "/" + seat_class_B + "/" + seat_class_A_price + "/" + seat_class_B_price + "/" + departure_point + "/" + destination_point + "/" + departure_date + "/" + return_date;
+                        send(clientSocket, add_msg.c_str(), add_msg.length(), 0);
+                        memset(buffer, 0, BUFFER_SIZE);
+                        int bytes_received2 = recv(clientSocket, buffer, BUFFER_SIZE, 0);
+                        if (bytes_received2 <= 0)
+                        {
+                            break;
+                        }
+                        buffer[bytes_received2] = '\0';
+
+                        string response2 = string(buffer);
+
+                        if (response2 == "Y_add")
+                        {
+                            std::cout << "Successfully inserted\n";
+                        }
+                        else if (response2 == "N_add")
+                        {
+                            std::cout << "The flight number might already exist\n";
+                        }
+                    }
+                    else if (lower_choice2 == "2")//delete flight
+                    {
+                        string del_flight_num;
+                        std::cout << "Enter the flight number which you want to delete: ";
+                        getline(cin, del_flight_num);
+                        string ad_del_msg = "del_flight/" + del_flight_num;
+                        send(clientSocket, ad_del_msg.c_str(), ad_del_msg.length(), 0);
+                        printf("%s", buffer);
+                        memset(buffer, 0, BUFFER_SIZE);
+                        int bytes_received2 = recv(clientSocket, buffer, BUFFER_SIZE, 0);
+                        if (bytes_received2 <= 0)
+                        {
+                            break;
+                        }
+                        buffer[bytes_received2] = '\0';
+
+                        string response2 = string(buffer);
+
+                        if (response2 == "N_del")
+                        {
+                            std::cout << "The flight_num does not exist\n";
+                        }
+                        else if (response2.find("Y_del") == 0)
+                        {
+                            std::cout << "Deleted \n";
+                        }
+                    }
+                    else if (lower_choice2 == "3")//modify flight
+                    {
+                        string modify_flight_num, modify_departure_date, modify_return_date;
+                        string modify_msg;
+
+                        std::cout << "Enter the flight number you want to modify: ";
+                        getline(cin, modify_flight_num);
+                        std::cout << "Enter the new departure date (possibly blank): ";
+                        getline(cin, modify_departure_date);
+                        std::cout << "Enter the new return date (possibly blank): ";
+                        getline(cin, modify_return_date);
+                        if (!modify_departure_date.empty() && !modify_return_date.empty())
+                        {
+                            modify_msg += "modify3/" + modify_flight_num + "/" + modify_departure_date + "/" + modify_return_date;
+                        }
+                        if (!modify_departure_date.empty() && modify_return_date.empty())
+                        {
+                            modify_msg += "modify1/" + modify_flight_num + "/" + modify_departure_date;
+                        }
+                        if (modify_departure_date.empty() && !modify_return_date.empty())
+                        {
+                            modify_msg += "modify2/" + modify_flight_num + "/" + modify_return_date;
+                        }
+                        send(clientSocket, modify_msg.c_str(), modify_msg.length(), 0);
+                        int bytes_received2 = recv(clientSocket, buffer, BUFFER_SIZE, 0);
+                        if (bytes_received2 <= 0)
+                        {
+                            break;
+                        }
+                        buffer[bytes_received2] = '\0';
+
+                        string response2 = string(buffer);
+
+                        if (response2 == "N_modify")
+                        {
+                            std::cout << "Can't find the flight number\n";
+                        }
+                        else if (response2 == "Y_modify")
+                        {
+                            std::cout << "Modified successfully\n";
+                        }
+                    }
+                }
             }
         }
         close(clientSocket);

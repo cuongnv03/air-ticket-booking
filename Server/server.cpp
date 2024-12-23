@@ -121,34 +121,50 @@ void connectClient(int clientSocket) {
 }
 
 void logIn(int clientSocket, const string &username, const string &password){
-    sqlite3_stmt *stmt;
-    string query = "SELECT user_id, username, password FROM Users WHERE username = ? AND password = ?";
-    if (sqlite3_prepare_v2(db, query.c_str(), -1, &stmt, nullptr) != SQLITE_OK) {
-        cerr << "Error preparing query: " << sqlite3_errmsg(db) << endl;
-        sqlite3_finalize(stmt);
+    if (userSocketMap.find(username) != userSocketMap.end())
+    {
+        std::cout << "Send: N_login1\n"
+                  << endl;
+        send(clientSocket, "N_login1", strlen("N_login1"), 0);
         return;
     }
 
-    sqlite3_bind_text(stmt, 1, username.c_str(), -1, SQLITE_STATIC);
-    sqlite3_bind_text(stmt, 2, password.c_str(), -1, SQLITE_STATIC);
-
-    if (sqlite3_step(stmt) == SQLITE_ROW) {
-        User user;
-        user.userId = sqlite3_column_int(stmt, 0); // Retrieve user_id
-        user.username = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 1));
-        user.password = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 2));
-        std::cout << "Send: 220/" << user.username << endl;
-        send(clientSocket, "220/", strlen("220/"), 0);
-        {
-            std::lock_guard<std::mutex> lock(mapMutex);
-            userSocketMap[username] = clientSocket;
+    if (username == "admin" && password == "1")
+    {
+        std::cout << "Send: Y_admin -> Admin\n";
+        send(clientSocket, "Y_admin", strlen("Y_admin"), 0);
+        adminMode(clientSocket);
+    }
+    else{
+        sqlite3_stmt *stmt;
+        string query = "SELECT user_id, username, password FROM Users WHERE username = ? AND password = ?";
+        if (sqlite3_prepare_v2(db, query.c_str(), -1, &stmt, nullptr) != SQLITE_OK) {
+            cerr << "Error preparing query: " << sqlite3_errmsg(db) << endl;
+            sqlite3_finalize(stmt);
+            return;
         }
-        sqlite3_finalize(stmt);
-        handleUserFunctions(clientSocket, user);
-    } else {
-        std::cout << "Send: 402/" << username << endl; 
-        sqlite3_finalize(stmt);
-        send(clientSocket, "402/", strlen("402/"), 0);
+
+        sqlite3_bind_text(stmt, 1, username.c_str(), -1, SQLITE_STATIC);
+        sqlite3_bind_text(stmt, 2, password.c_str(), -1, SQLITE_STATIC);
+
+        if (sqlite3_step(stmt) == SQLITE_ROW) {
+            User user;
+            user.userId = sqlite3_column_int(stmt, 0); // Retrieve user_id
+            user.username = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 1));
+            user.password = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 2));
+            std::cout << "Send: 220/" << user.username << endl;
+            send(clientSocket, "220/", strlen("220/"), 0);
+            {
+                std::lock_guard<std::mutex> lock(mapMutex);
+                userSocketMap[username] = clientSocket;
+            }
+            sqlite3_finalize(stmt);
+            handleUserFunctions(clientSocket, user);
+        } else {
+            std::cout << "Send: 402/" << username << endl; 
+            sqlite3_finalize(stmt);
+            send(clientSocket, "402/", strlen("402/"), 0);
+        }
     }
 }
 
@@ -233,7 +249,7 @@ void searchFlight1(int clientSocket, const string &departurePoint, const string 
         send(clientSocket, msg.c_str(), msg.length(), 0);
         return;
     }
-    printf("userid: %d\n", user.userId);
+    // printf("userid: %d\n", user.userId);
     sqlite3_bind_text(stmt, 1, departurePoint.c_str(), -1, SQLITE_STATIC);
     sqlite3_bind_text(stmt, 2, destinationPoint.c_str(), -1, SQLITE_STATIC);
 
@@ -1124,7 +1140,7 @@ void view_ticket(int clientSocket, const User &user) {
         ticket.ticketId = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 0));
         ticket.flightId = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 1));
         ticket.seatClass = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 2));
-        ticket.ticketPrice = sqlite3_column_double(stmt, 3);
+        ticket.ticketPrice = sqlite3_column_int(stmt, 3);
         ticket.paymentStatus = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 4));
 
         flight.company = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 5));
@@ -1132,6 +1148,11 @@ void view_ticket(int clientSocket, const User &user) {
         flight.returnDate = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 7));
         flight.departurePoint = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 8));
         flight.destinationPoint = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 9));
+
+        stringstream ss;
+        ss << ticket.ticketPrice;
+        string str = ss.str();
+        string str_ticket_price = str.substr(0, 3) + "." + str.substr(3, 3);
 
         // Tạo chuỗi kết quả
         result_str += ticket.ticketId + ",";
@@ -1142,7 +1163,7 @@ void view_ticket(int clientSocket, const User &user) {
         result_str += flight.departureDate + ",";
         result_str += flight.returnDate + ",";
         result_str += ticket.seatClass + ",";
-        result_str += to_string(ticket.ticketPrice) + " VND,";
+        result_str += str_ticket_price + " VND,";
         result_str += ticket.paymentStatus + ";";
     }
 
@@ -1208,7 +1229,7 @@ void print_ticket(int clientSocket, const string ticket_code, const User &user)
         string str = ss.str();
         string str_ticket_price = str.substr(0, 3) + "." + str.substr(3, 3);
 
-         result_str += ticket.ticketId + ",";
+        result_str += ticket.ticketId + ",";
         result_str += ticket.flightId + ",";
         result_str += flight.company + ",";
         result_str += flight.departurePoint + ",";
@@ -1354,4 +1375,488 @@ int get_user_id_from_username(const std::string &username) {
     }
 
     return user_id;
+}
+
+void updateFlight3(int client_socket, string &flight_num, const string &new_departure_date, const string &new_return_date)
+{
+    if (!flightIdExists(flight_num))
+    {
+        cout << "Flight number does not exist: " << flight_num << endl;
+        std::cout << "Send: N_modify ->Admin\n";
+        send(client_socket, "N_modify", strlen("N_modify"), 0);
+        return;
+    }
+    vector<int> affected_ids = getAffectedUserId(flight_num);
+    pair<string, string> old = getOldDates(flight_num);
+    DateDifference diff = calculateDateDifference(old.first, new_departure_date);
+    string noti1;
+    if (diff.days != 0)
+    {
+        noti1 = "Schedule changed: " + flight_num + "'s departure date has changed to " + new_departure_date + " &";
+    }
+    else if (diff.hours != 0 && diff.days == 0)
+    {
+        stringstream ss;
+        ss << diff.hours;
+        string num_hours = ss.str();
+        noti1 = "Flight " + flight_num + " has been delayed for " + num_hours + "hours" + " &";
+    }
+    noti1 += new_return_date;
+    sqlite3_stmt *stmt;
+    string query = "UPDATE Flights SET departure_date = ?, return_date = ? WHERE flight_num = ?";
+
+    if (sqlite3_prepare_v2(db, query.c_str(), -1, &stmt, nullptr) != SQLITE_OK)
+    {
+        cerr << "Error preparing update statement: " << sqlite3_errmsg(db) << endl;
+        return;
+    }
+
+    sqlite3_bind_text(stmt, 1, new_departure_date.c_str(), -1, SQLITE_STATIC);
+    sqlite3_bind_text(stmt, 2, new_return_date.c_str(), -1, SQLITE_STATIC);
+    sqlite3_bind_text(stmt, 3, flight_num.c_str(), -1, SQLITE_STATIC);
+
+    if (sqlite3_step(stmt) != SQLITE_DONE)
+    {
+        cerr << "Error executing update statement: " << sqlite3_errmsg(db) << endl;
+    }
+    else
+    {
+        for (int user_id : affected_ids)
+        {
+            string username = get_username_from_id(user_id);
+            std::lock_guard<std::mutex> lockMap(mapMutex);
+            auto it = userSocketMap.find(username);
+            if (it != userSocketMap.end())
+            {
+                int user_socket = it->second;
+                {
+                    std::lock_guard<std::mutex> lockNotif(clientNotifMapMutex);
+                    clientNotifMap[user_socket] += "Y_modified3" + noti1;
+                }
+            }
+            else
+            {
+                cerr << "User " << username << " not connected for notification." << endl;
+            }
+        }
+        std::cout << "Send: Y_modify ->Admin\n";
+        send(client_socket, "Y_modify", strlen("Y_modify"), 0);
+    }
+    sqlite3_finalize(stmt);
+}
+void adminMode(int clientSocket){
+    char buffer[BUFFER_SIZE];
+    int bytes_received;
+    while (true)
+    {
+        bytes_received = recv(clientSocket, buffer, BUFFER_SIZE - 1, 0);
+        if (bytes_received <= 0)
+        {
+            break;
+        }
+
+        buffer[bytes_received] = '\0';
+        string received(buffer);
+        cout << "Received: " << received << " from admin\n";
+        if (toLower(received) == "logout")
+        {
+            std::cout << "Admin logged out requested" << endl;
+            send(clientSocket, "O_log", strlen("O_log"), 0);
+            return;
+        }
+        vector<string> type1 = splitString(received, '/');
+        if (toLower(type1[0]) == "add_flight")//add new flight admin
+        {
+            addFlight(clientSocket, type1[1], type1[2], stoi(type1[3]), stoi(type1[4]), stoi(type1[5]), stoi(type1[6]), type1[7], type1[8], type1[9], type1[10]);
+        }
+        else if (toLower(type1[0]) == "del_flight")// delete flight admin
+        {
+        deleteFlight(clientSocket, type1[1]);
+        }
+        else if (toLower(type1[0]) == "modify1")
+        {
+            updateFlight1(clientSocket, type1[1], type1[2]);
+        }
+        else if (toLower(type1[0]) == "modify2")
+        {
+            updateFlight2(clientSocket, type1[1], type1[2]);
+        }
+        else if (toLower(type1[0]) == "modify3")
+        {
+            updateFlight3(clientSocket, type1[1], type1[2], type1[3]);
+        }
+    }
+}
+bool flightIdExists(const string &flight_num)
+{
+    cout << "Checking flight number: " << flight_num << endl;
+    sqlite3_stmt *stmt;
+    string query = "SELECT 1 FROM Flights WHERE flight_num = ? LIMIT 1";
+
+    if (sqlite3_prepare_v2(db, query.c_str(), -1, &stmt, nullptr) != SQLITE_OK)
+    {
+        cerr << "Error preparing select statement: " << sqlite3_errmsg(db) << endl;
+        return false;
+    }
+
+    sqlite3_bind_text(stmt, 1, flight_num.c_str(), -1, SQLITE_STATIC);
+
+    if (sqlite3_step(stmt) == SQLITE_ROW)
+    {
+        sqlite3_finalize(stmt);
+        return true;
+    }
+    else
+    {
+        cerr << "Flight number not found or error executing select statement: " << sqlite3_errmsg(db) << endl;
+        sqlite3_finalize(stmt);
+        return false;
+    }
+}
+
+void updateFlight1(int clientSocket, const string &flight_num, const string &new_departure_date)
+{
+    if (!flightIdExists(flight_num))
+    {
+        cout << "Flight number does not exist: " << flight_num << endl;
+        std::cout << "Send: N_modify ->Admin\n";
+        send(clientSocket, "N_modify", strlen("N_modify"), 0);
+        return;
+    }
+    vector<int> affected_ids = getAffectedUserId(flight_num);
+    pair<string, string> old = getOldDates(flight_num);
+    DateDifference diff = calculateDateDifference(old.first, new_departure_date);
+    string noti1;
+    if (diff.days != 0)
+    {
+        noti1 = "Schedule changed: " + flight_num + "'s departure date has changed to " + new_departure_date + " &";
+    }
+    else if (diff.hours != 0 && diff.days == 0)
+    {
+        stringstream ss;
+        ss << diff.hours;
+        string num_hours = ss.str();
+        noti1 = "Flight " + flight_num + " has been delayed for " + num_hours + "hours" + " &";
+    }
+
+    sqlite3_stmt *stmt;
+
+    string query = "UPDATE Flights SET departure_date = ? WHERE flight_num = ?";
+
+    if (sqlite3_prepare_v2(db, query.c_str(), -1, &stmt, nullptr) != SQLITE_OK)
+    {
+        cerr << "Error preparing update statement: " << sqlite3_errmsg(db) << endl;
+        return;
+    }
+
+    sqlite3_bind_text(stmt, 1, new_departure_date.c_str(), -1, SQLITE_STATIC);
+    sqlite3_bind_text(stmt, 2, flight_num.c_str(), -1, SQLITE_STATIC);
+
+    if (sqlite3_step(stmt) != SQLITE_DONE)
+    {
+        cerr << "Error executing update statement: " << sqlite3_errmsg(db) << endl;
+    }
+    else
+    {
+        for (int user_id : affected_ids)
+        {
+            string username = get_username_from_id(user_id);
+            std::lock_guard<std::mutex> lockMap(mapMutex);
+            auto it = userSocketMap.find(username);
+            if (it != userSocketMap.end())
+            {
+                int user_socket = it->second;
+
+                {
+                    std::lock_guard<std::mutex> lockNotif(clientNotifMapMutex);
+                    clientNotifMap[user_socket] += "Y_modified1" + noti1;
+                }
+            }
+            else
+            {
+                cerr << "User " << username << " not connected for notification." << endl;
+            }
+        }
+        std::cout << "Send: Y_modify ->Admin\n";
+        send(clientSocket, "Y_modify", strlen("Y_modify"), 0);
+    }
+    sqlite3_finalize(stmt);
+}
+void updateFlight2(int client_socket, string &flight_num, const string &new_return_date)
+{
+    vector<int> affected_ids = getAffectedUserId(flight_num);
+    if (!flightIdExists(flight_num))
+    {
+        cout << "Flight number does not exist: " << flight_num << endl;
+        std::cout << "Send: N_modify ->Admin\n";
+        send(client_socket, "N_modify", strlen("N_modify"), 0);
+        return;
+    }
+    sqlite3_stmt *stmt;
+    string query = "UPDATE Flights SET return_date = ? WHERE flight_num = ?";
+
+    if (sqlite3_prepare_v2(db, query.c_str(), -1, &stmt, nullptr) != SQLITE_OK)
+    {
+        cerr << "Error preparing update statement: " << sqlite3_errmsg(db) << endl;
+        return;
+    }
+
+    sqlite3_bind_text(stmt, 1, new_return_date.c_str(), -1, SQLITE_STATIC);
+    sqlite3_bind_text(stmt, 2, flight_num.c_str(), -1, SQLITE_STATIC);
+
+    if (sqlite3_step(stmt) != SQLITE_DONE)
+    {
+        cerr << "Error executing update statement: " << sqlite3_errmsg(db) << endl;
+    }
+    else
+    {
+        for (int user_id : affected_ids)
+        {
+            string username = get_username_from_id(user_id);
+            std::lock_guard<std::mutex> lockMap(mapMutex);
+            auto it = userSocketMap.find(username);
+            if (it != userSocketMap.end())
+            {
+                int user_socket = it->second;
+                std::string notifMessage;
+                notifMessage = "Y_modified2Your flight " + flight_num + "'s return date has changed into " + new_return_date + "&";
+                {
+                    std::lock_guard<std::mutex> lockNotif(clientNotifMapMutex);
+                    clientNotifMap[user_socket] += notifMessage;
+                }
+            }
+            else
+            {
+                cerr << "User " << username << " not connected for notification." << endl;
+            }
+        }
+
+        std::cout << "Send: Y_modify ->Admin\n";
+        send(client_socket, "Y_modify", strlen("Y_modify"), 0);
+    }
+    sqlite3_finalize(stmt);
+}
+
+
+void addFlight(int clientSocket, const string &company, const string &flight_num, const int &seat_class_A, const int &seat_class_B, const int &price_A, const int &price_B, const string &departure_point, const string &destination_point, const string &departure_date, const string &return_date){
+    sqlite3_stmt *stmt;
+    string msg;
+    string check_query = "SELECT flight_num FROM Flights WHERE flight_num = ?";
+    if (sqlite3_prepare_v2(db, check_query.c_str(), -1, &stmt, nullptr) != SQLITE_OK)
+    {
+        cerr << "Error preparing query: " << sqlite3_errmsg(db) << endl;
+        msg = "N_add";
+        cout << "Send: " << msg << " ->" << "Admin\n";
+        send(clientSocket, msg.c_str(), msg.length(), 0);
+        return;
+    }
+    sqlite3_bind_text(stmt, 1, flight_num.c_str(), -1, SQLITE_STATIC);
+    if (sqlite3_step(stmt) == SQLITE_ROW)
+    {
+        cerr << "Flight number already exists" << endl;
+        msg = "N_add";
+        cout << "Send: " << msg << " ->" << "Admin\n";
+        send(clientSocket, msg.c_str(), msg.length(), 0);
+        sqlite3_finalize(stmt);
+        return;
+    }
+    sqlite3_finalize(stmt);
+    string insert_query = "INSERT INTO Flights (company, flight_num, seat_class_A, seat_class_B, price_A, price_B, departure_point, destination_point, departure_date, return_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    if (sqlite3_prepare_v2(db, insert_query.c_str(), -1, &stmt, nullptr) != SQLITE_OK)
+    {
+        cerr << "Error preparing query: " << sqlite3_errmsg(db) << endl;
+        msg = "N_add";
+        cout << "Send: " << msg << " ->" << "Admin\n";
+        send(clientSocket, msg.c_str(), msg.length(), 0);
+        return;
+    }
+    sqlite3_bind_text(stmt, 1, company.c_str(), -1, SQLITE_STATIC);
+    sqlite3_bind_text(stmt, 2, flight_num.c_str(), -1, SQLITE_STATIC);
+    sqlite3_bind_int(stmt, 3, seat_class_A);
+    sqlite3_bind_int(stmt, 4, seat_class_B);
+    sqlite3_bind_int(stmt, 5, price_A);
+    sqlite3_bind_int(stmt, 6, price_B);
+    sqlite3_bind_text(stmt, 7, departure_point.c_str(), -1, SQLITE_STATIC);
+    sqlite3_bind_text(stmt, 8, destination_point.c_str(), -1, SQLITE_STATIC);
+    sqlite3_bind_text(stmt, 9, departure_date.c_str(), -1, SQLITE_STATIC);
+    sqlite3_bind_text(stmt, 10, return_date.c_str(), -1, SQLITE_STATIC);
+    if (sqlite3_step(stmt) != SQLITE_DONE)
+    {
+        cerr << "Error inserting data: " << sqlite3_errmsg(db) << endl;
+        msg = "N_add";
+        cout << "Send: " << msg << " ->" << "Admin\n";
+        send(clientSocket, msg.c_str(), msg.length(), 0);
+    }
+    else
+    {
+        cout << "Admin: Flight inserted\n";
+        msg = "Y_add";
+        cout << "Send: " << msg << " ->" << "Admin\n";
+        send(clientSocket, msg.c_str(), msg.length(), 0);
+    }
+    sqlite3_finalize(stmt);
+}
+void deleteFlight(int clientSocket, const string &flight_num){
+    sqlite3_stmt *stmt;
+    const char *flight_check_sql = "SELECT COUNT(*) FROM Flights WHERE flight_num = ?;";
+    if (sqlite3_prepare_v2(db, flight_check_sql, -1, &stmt, NULL) != SQLITE_OK)
+    {
+        cerr << "Error preparing flight check statement" << endl;
+        return;
+    }
+    else
+    {
+        sqlite3_bind_text(stmt, 1, flight_num.c_str(), -1, SQLITE_TRANSIENT);
+        if (sqlite3_step(stmt) == SQLITE_ROW)
+        {
+            if (sqlite3_column_int(stmt, 0) == 0)
+            {
+                std::cout << "Send: N_del ->Admin\n";
+                send(clientSocket, "N_del", strlen("N_del"), 0);
+                sqlite3_finalize(stmt);
+                return;
+            }
+        }
+        sqlite3_finalize(stmt);
+    }
+    vector<int> affected_user_ids = getAffectedUserId(flight_num);
+    // Delete the flight
+    string delete_query = "DELETE FROM Flights WHERE flight_num = ?";
+    if (sqlite3_prepare_v2(db, delete_query.c_str(), -1, &stmt, nullptr) != SQLITE_OK)
+    {
+        cerr << "Error preparing query: " << sqlite3_errmsg(db) << endl;
+        std::cout << "Send: N_del ->Admin\n";
+        send(clientSocket, "N_del", strlen("N_del"), 0);
+        return;
+    }
+    sqlite3_bind_text(stmt, 1, flight_num.c_str(), -1, SQLITE_STATIC);
+
+    if (sqlite3_step(stmt) != SQLITE_DONE)
+    {
+        cerr << "Error deleting flight: " << sqlite3_errmsg(db) << endl;
+        std::cout << "Send: N_del ->Admin\n";
+        send(clientSocket, "N_del", strlen("N_del"), 0);
+    }
+    else
+    {
+        std::cout << "Flight deleted successfully" << endl;
+        std::cout << "Send: Y_del ->Admin\n";
+        send(clientSocket, "Y_del", strlen("Y_del"), 0);
+        for (int user_id : affected_user_ids)
+        {
+            string username = get_username_from_id(user_id);
+            std::lock_guard<std::mutex> lockMap(mapMutex);
+            auto it = userSocketMap.find(username);
+            if (it != userSocketMap.end())
+            {
+                int user_socket = it->second;
+
+                std::string notifMessage = "Y_notif_cancelled" + flight_num;
+                {
+                    std::lock_guard<std::mutex> lockNotif(clientNotifMapMutex);
+                    clientNotifMap[user_socket] += notifMessage;
+                }
+            }
+            else
+            {
+                cerr << "User " << username << " not connected for notification." << endl;
+            }
+        }
+    }
+    sqlite3_finalize(stmt);
+
+    string del_ticket_query = "DELETE FROM Tickets WHERE flight_num = ?";
+    if (sqlite3_prepare_v2(db, del_ticket_query.c_str(), -1, &stmt, nullptr) != SQLITE_OK)
+    {
+        cerr << "Error preparing query: " << sqlite3_errmsg(db) << endl;
+        std::cout << "Send: N_del ->Admin\n";
+        send(clientSocket, "N_del", strlen("N_del"), 0);
+        return;
+    }
+    sqlite3_bind_text(stmt, 1, flight_num.c_str(), -1, SQLITE_STATIC);
+
+    if (sqlite3_step(stmt) != SQLITE_DONE)
+    {
+        cerr << "Error deleting tickets: " << sqlite3_errmsg(db) << endl;
+        std::cout << "Send: N_del ->Admin\n";
+        send(clientSocket, "N_del", strlen("N_del"), 0);
+    }
+    else
+    {
+        std::cout << "Tickets for flight " << flight_num << " deleted successfully" << endl;
+    }
+    sqlite3_finalize(stmt);
+}
+std::vector<int> getAffectedUserId(const std::string &flight_num)
+{
+    std::vector<int> affected_user_ids;
+    sqlite3_stmt *stmt;
+
+    std::string ticket_check_query = "SELECT user_id FROM Tickets WHERE flight_num = ?";
+    if (sqlite3_prepare_v2(db, ticket_check_query.c_str(), -1, &stmt, nullptr) != SQLITE_OK)
+    {
+        std::cerr << "Error preparing query: " << sqlite3_errmsg(db) << std::endl;
+        return affected_user_ids;
+    }
+    sqlite3_bind_text(stmt, 1, flight_num.c_str(), -1, SQLITE_STATIC);
+
+    while (sqlite3_step(stmt) == SQLITE_ROW)
+    {
+        affected_user_ids.push_back(sqlite3_column_int(stmt, 0));
+    }
+    sqlite3_finalize(stmt);
+
+    return affected_user_ids;
+}
+std::string get_username_from_id(int user_id)
+{
+    sqlite3_stmt *stmt;
+    std::string username;
+    std::string query = "SELECT username FROM Users WHERE user_id = ?";
+
+    if (sqlite3_prepare_v2(db, query.c_str(), -1, &stmt, nullptr) == SQLITE_OK)
+    {
+        sqlite3_bind_int(stmt, 1, user_id);
+
+        if (sqlite3_step(stmt) == SQLITE_ROW)
+        {
+            const unsigned char *username_raw = sqlite3_column_text(stmt, 0);
+            username = reinterpret_cast<const char *>(username_raw);
+        }
+        else
+        {
+            std::cerr << "User not found for ID: " << user_id << std::endl;
+        }
+
+        sqlite3_finalize(stmt);
+    }
+    else
+    {
+        std::cerr << "SQL error: " << sqlite3_errmsg(db) << std::endl;
+    }
+
+    return username;
+}
+pair<string, string> getOldDates(const string &flight_num)
+{
+    sqlite3_stmt *stmt;
+    string query = "SELECT departure_date, return_date FROM Flights WHERE flight_num = ?";
+    pair<string, string> old_dates;
+
+    if (sqlite3_prepare_v2(db, query.c_str(), -1, &stmt, nullptr) != SQLITE_OK)
+    {
+        cerr << "Error preparing statement: " << sqlite3_errmsg(db) << endl;
+        return old_dates;
+    }
+
+    sqlite3_bind_text(stmt, 1, flight_num.c_str(), -1, SQLITE_STATIC);
+
+    if (sqlite3_step(stmt) == SQLITE_ROW)
+    {
+        old_dates.first = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 0));
+        old_dates.second = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 1));
+    }
+
+    sqlite3_finalize(stmt);
+    return old_dates;
 }

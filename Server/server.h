@@ -214,20 +214,24 @@ void processPaymentForChange(int clientSocket, const string& ticketId, const str
 void processRefundForChange(int clientSocket, const string& ticketId, const string &paymentMethod, const string &paymentDetails, const User& user);
 void cancelTicket(int clientSocket, const string& ticketId, const User& user);
 void changeTicket(int clientSocket, const string& ticketId, const string& newFlightId, const string& newSeatClass, const User& user);
-// void printTicket(int clientSocket, const string& ticketId, const User& user);
-// void viewTickets(int clientSocket, const User& user);
-// bool flightIdExists(const string& flightId);
+void print_ticket(int clientSocket, const string ticket_code, const User &user);
+void view_ticket(int clientSocket, const User &user);
 
 // Admin Functions
-// void updateFlight1(int clientSocket, const string &flightId, const string &newDepartureDate);
-// void updateFlight2(int clientSocket, string &flightId, const string &newReturnDate);
-// void updateFlight3(int clientSocket, string &flightId, const string &newDepartureDate, const string &newReturnDate);
+void adminMode(int clientSocket);
+void addFlight(int clientSocket, const string &company, const string &flight_num, const int &seat_class_A, const int &seat_class_B, const int &price_A, const int &price_B, const string &departure_point, const string &destination_point, const string &departure_date, const string &return_date);
+void updateFlight1(int clientSocket, const string &flight_num, const string &new_departure_date);
+void updateFlight2(int client_socket, string &flight_num, const string &new_return_date);
+void updateFlight3(int client_socket, string &flight_num, const string &new_departure_date, const string &new_return_date);
+void deleteFlight(int clientSocket, const string &flight_num);
+bool flightIdExists(const string &flight_num);
 
 // Notification Functions
 // void sendNotifications(int clientSocket, const vector<int>& affectedIds, const string& notification, int c);
 // void notifyUsers(const vector<int>& affectedUserIds, const string& notification, int c);
-// pair<string, string> getOldDates(const string &flightId);
-// std::vector<int> getAffectedUserId(const std::string &flightId);
+pair<string, string> getOldDates(const string &flight_num);
+std::vector<int> getAffectedUserId(const std::string &flight_num);
 int get_user_id_from_username(const std::string &username);
+std::string get_username_from_id(int user_id);
 
 #endif // SERVER_H
