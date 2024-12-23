@@ -89,7 +89,7 @@ void printMainMenu() {
 void printUserFunctions() {
     cout << "\n__________________________________________________\n"
          << "1. Search Flights\n2. Book Tickets\n3. View Ticket Details\n4. Cancel Tickets\n"
-         << "5. Change Tickets\n6. Print Tickets\n7. Ticket Payment\n8. Log Out\n"
+         << "5. Change Tickets\n6. Print Tickets\n7. Mail Ticket\n8. Log Out\n"
          << "__________________________________________________\nYour choice: ";
 }
 
@@ -121,7 +121,7 @@ void save_tickets_to_file(const string &ticket_data, string ticket_code)
     }
 
     file << "---------------------" << endl;
-    const char *titles[] = {"Flight Number: ", "Ticket Code: ", "Company: ", "Departure Point: ", "Destination Point: ", "Departure Date: ", "Return Date: ", "Seat Class: ", "Ticket Price: ", "Paymemt: "};
+    const char *titles[] = {"Ticket ID: ", "Flight ID: ", "Company: ", "Departure Point: ", "Destination Point: ", "Departure Date: ", "Return Date: ", "Seat Class: ", "Ticket Price: ", "Paymemt: "};
     size_t start = 0, end;
     int field_index = 0;
     while ((end = ticket_data.find(',', start)) != string::npos)

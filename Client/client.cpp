@@ -440,10 +440,10 @@ int main() {
                             cout << "Unexpected server response: " << changeResponse << endl;
                         }
                     } else if(trimmedUserChoice == "6") {//print ticket
-                        cout << "Enter ticket code: ";
-                        string ticket_code;
-                        getline(cin, ticket_code);
-                        string printRequest = "print/" + ticket_code;
+                        cout << "Enter ticket ID: ";
+                        string ticketID;
+                        getline(cin, ticketID);
+                        string printRequest = "print/" + ticketID;
                         send(clientSocket, printRequest.c_str(), printRequest.length(), 0);
                         memset(buffer, 0, BUFFER_SIZE);
                         recv(clientSocket, buffer, BUFFER_SIZE, 0);
@@ -454,11 +454,44 @@ int main() {
                         if (printResponseCode == "360"){
                             string ticketData = printResponse.substr(4);
                             cout << "Ticket saved: " << endl;
-                            save_tickets_to_file(ticketData, ticket_code);
+                            save_tickets_to_file(ticketData, ticketID);
                         } else if (printResponseCode == "461"){
                             cout << "Fail to print." << endl;
                         } else {
                             cout << "Unexpected server response: " << printResponse << endl;
+                        }
+                    } else if(trimmedUserChoice == "7") {//mail ticket
+                        cout << "Enter your ticket ID: ";
+                        string ticketID;
+                        getline(cin, ticketID);
+
+                        string mailRequest = "MAIL/" + ticketID;
+                        send(clientSocket, mailRequest.c_str(), mailRequest.length(), 0);
+
+                        memset(buffer, 0, BUFFER_SIZE);
+                        recv(clientSocket, buffer, BUFFER_SIZE, 0);
+                        string response(buffer);
+
+                        if (response == "370/") { // Yêu cầu chọn phương thức gửi
+                            cout << "Enter your G-mail: ";
+                            string email;
+                            getline(cin, email);
+                            send(clientSocket, email.c_str(), email.length(), 0);
+                            memset(buffer, 0, BUFFER_SIZE);
+                            recv(clientSocket, buffer, BUFFER_SIZE, 0);
+                            string finalResponse(buffer);
+
+                            if (finalResponse == "371/") {
+                                cout << "Ticket ID sent successfully!" << endl;
+                            } else if (finalResponse == "472/") {
+                                cout << "Invalid format! Please try again." << endl;
+                            } else if (finalResponse == "471/") {
+                                cout << "Failed to send Ticket ID. Please try again." << endl;
+                            } else {
+                                cout << "Unexpected server response: " << finalResponse << endl;
+                            }
+                        } else {
+                            cout << "Unexpected server response: " << response << endl;
                         }
                     } else {
                         cout << "Invalid choice!" << endl;

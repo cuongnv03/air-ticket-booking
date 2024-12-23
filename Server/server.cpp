@@ -1167,7 +1167,7 @@ void print_ticket(int clientSocket, const string ticket_code, const User &user)
     sqlite3_stmt *stmt;
     string msg;
     string noti = checkNotifications(clientSocket);
-    int userId =get_user_id_from_username(user.username);
+    int userId = get_user_id_from_username(user.username);
     string query = "SELECT T.ticket_code, T.flight_num, T.seat_class, T.ticket_price, T.payment, F.company, F.departure_date, F.return_date, F.departure_point, F.destination_point "
                    "FROM Tickets T "
                    "JOIN Flights F ON T.flight_num = F.flight_num "
@@ -1236,6 +1236,36 @@ void print_ticket(int clientSocket, const string ticket_code, const User &user)
     }
 }
 
+void mailTicket(int clientSocket, const string &ticketID) {
+    string requestEmailResponse = "370/"; // Yêu cầu nhập email
+    send(clientSocket, requestEmailResponse.c_str(), requestEmailResponse.length(), 0);
+    char buffer[BUFFER_SIZE];
+    // memset(buffer, 0, BUFFER_SIZE);
+    int bytesReceived = recv(clientSocket, buffer, BUFFER_SIZE, 0);
+    if (bytesReceived <= 0) {
+        return;
+    }
+    buffer[bytesReceived] = '\0';
+    string email(buffer);
+
+    // Kiểm tra định dạng email
+    if (!regex_match(email, regex("^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\\.[a-zA-Z0-9-.]+$"))) {
+        string invalidResponse = "472/"; // Định dạng email không hợp lệ
+        send(clientSocket, invalidResponse.c_str(), invalidResponse.length(), 0);
+        return;
+    }
+
+    // Gửi email
+    string message = "Your ticket ID is " + ticketID + ". Thank you for using our service.";
+    if (sendEmail(email, "Your Ticket ID", message)) {
+        string successResponse = "371/"; // Gửi thành công
+        send(clientSocket, successResponse.c_str(), successResponse.length(), 0);
+    } else {
+        string failResponse = "471/"; // Gửi thất bại
+        send(clientSocket, failResponse.c_str(), failResponse.length(), 0);
+    }
+}
+
 void handleUserFunctions(int clientSocket, const User &user) {
     char buffer[BUFFER_SIZE];
     while (true) {
@@ -1290,25 +1320,18 @@ void handleUserFunctions(int clientSocket, const User &user) {
             processPaymentForChange(clientSocket, requestParts[1], stoi(requestParts[2]), requestParts[3], requestParts[4], user);
         } else if (requestParts[0] == "REFUNDC") {
             processRefundForChange(clientSocket, requestParts[1], stoi(requestParts[2]), requestParts[3], requestParts[4], user);
-        }
-        else if (requestParts[0] == "view") {
+        } else if (requestParts[0] == "view") {
             view_ticket(clientSocket, user);
-        }
-        else if (requestParts[0] == "print") {
+        } else if (requestParts[0] == "print") {
             print_ticket(clientSocket, requestParts[1], user);
-        }
-        else if (requestParts[0] == "view") {
-            view_ticket(clientSocket, user);
-        }
-        else if (requestParts[0] == "print") {
-            print_ticket(clientSocket, requestParts[1], user);
-        }
-        else if (requestParts[0] == "view") {
-            view_ticket(clientSocket, user);
-        }
-        else if (requestParts[0] == "print") {
-            print_ticket(clientSocket, requestParts[1], user);
-        }
+        } else if (requestParts[0] == "MAIL") {
+            if (requestParts.size() == 2) {
+                mailTicket(clientSocket, requestParts[1]);
+            } else {
+                string invalidFormatResponse = "475/"; // Lỗi định dạng
+                send(clientSocket, invalidFormatResponse.c_str(), invalidFormatResponse.length(), 0);
+            }
+}
     }
 }
 int get_user_id_from_username(const std::string &username) {

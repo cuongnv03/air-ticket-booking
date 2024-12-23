@@ -23,6 +23,7 @@
 #include <chrono>
 #include <queue>
 #include <algorithm>
+#include <curl/curl.h>
 
 using namespace std;
 
@@ -135,6 +136,56 @@ string checkNotifications(int clientSocket){
         }
     }
     return notification;
+}
+
+bool sendEmail(const std::string &email, const std::string &subject, const std::string &body) {
+    CURL *curl;
+    CURLcode res = CURLE_OK;
+
+    // Initialize libcurl
+    curl = curl_easy_init();
+    if (!curl) {
+        std::cerr << "Failed to initialize CURL." << std::endl;
+        return false;
+    }
+
+    // Configure SMTP server for sending emails (e.g., Gmail SMTP)
+    curl_easy_setopt(curl, CURLOPT_URL, "smtp://smtp.gmail.com:587"); // Gmail SMTP server
+    curl_easy_setopt(curl, CURLOPT_USERNAME, "cuong.nv281203@gmail.com"); // Replace with your Gmail address
+    curl_easy_setopt(curl, CURLOPT_PASSWORD, "Cg0977411180");   // Replace with your Gmail app password
+
+    // Set sender and recipient
+    curl_easy_setopt(curl, CURLOPT_MAIL_FROM, "cuong.nv281203@gmail.com");
+    struct curl_slist *recipients = nullptr;
+    recipients = curl_slist_append(recipients, ("<" + email + ">").c_str());
+    curl_easy_setopt(curl, CURLOPT_MAIL_RCPT, recipients);
+
+    // Email content
+    std::string message = "To: " + email + "\r\n"
+                          "From: cuong.nv281203@gmail.com\r\n"
+                          "Subject: " + subject + "\r\n"
+                          "\r\n" + body;
+    curl_easy_setopt(curl, CURLOPT_READFUNCTION, [](void *ptr, size_t size, size_t nmemb, void *userp) -> size_t {
+        std::string *data = static_cast<std::string *>(userp);
+        size_t totalSize = size * nmemb;
+        size_t copySize = std::min(totalSize, data->size());
+        memcpy(ptr, data->data(), copySize);
+        data->erase(0, copySize);
+        return copySize;
+    });
+    curl_easy_setopt(curl, CURLOPT_READDATA, &message);
+
+    // Perform the request
+    res = curl_easy_perform(curl);
+    curl_slist_free_all(recipients);
+    curl_easy_cleanup(curl);
+
+    if (res != CURLE_OK) {
+        std::cerr << "Failed to send email: " << curl_easy_strerror(res) << std::endl;
+        return false;
+    }
+
+    return true;
 }
 
 // User Authentication Functions
