@@ -1,0 +1,12 @@
+---------------------
+Ticket Code: RRD623
+Flight Number: abc123
+Company: asasas
+Departure Point: hanoi
+Destination Point: tphcm
+Departure Date: 12-12-12
+Return Date: 14-14-14
+Seat Class: A
+Ticket Price: 300.000 VND
+Paymemt: PAID;
+---------------------

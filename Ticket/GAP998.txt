@@ -1,0 +1,12 @@
+---------------------
+Ticket Code: GAP998
+Flight Number: HJK890
+Company: Bamboo
+Departure Point: ThanhHoa
+Destination Point: NhaTrang
+Departure Date: 2023-12-14 13:11
+Return Date: 2024-01-02 10:11
+Seat Class: A
+Ticket Price: 899.000 VND
+Paymemt: PAID;
+---------------------

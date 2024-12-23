@@ -70,7 +70,40 @@ void displaySearchResults(const string &ticketData) {
         pos = nextPos + 1;
     }
 }
+void displayTicketInformation(const string &ticket_data)
+{
+    size_t pos = 0;
+    while (true)
+    {
+        size_t next_pos = ticket_data.find(';', pos);
+        if (next_pos == string::npos)
+        {
+            break;
+        }
+        string ticket_info = ticket_data.substr(pos, next_pos - pos);
 
+        size_t start = 0, end;
+        cout << "---------------------" << endl;
+        const char *titles[] = {"Ticket Code: ", "Flight Number: ", "Company: ", "Departure Point: ", "Destination Point: ", "Departure Date: ", "Return Date: ", "Seat Class: ", "Ticket Price: ", "Payment: "};
+        int field_index = 0;
+
+        while (true)
+        {
+            end = ticket_info.find(',', start);
+            if (end == string::npos)
+            {
+                cout << titles[field_index] << ticket_info.substr(start) << endl;
+                break;
+            }
+            string field = ticket_info.substr(start, end - start);
+            cout << titles[field_index++] << field << endl;
+            start = end + 1;
+        }
+        cout << "---------------------" << endl;
+
+        pos = next_pos + 1;
+    }
+}
 void printSearchMenu() {
     cout << "1. Search based on departure point and destination point.\n"
          << "2. Search based on departure point, destination point, and departure date.\n"
@@ -92,7 +125,13 @@ void printUserFunctions() {
          << "5. Change Tickets\n6. Print Tickets\n7. Ticket Payment\n8. Log Out\n"
          << "__________________________________________________\nYour choice: ";
 }
-
+void print_admin_menu()
+{
+    std::cout << "__________________________________________________\n";
+    std::cout << "1. Add flight\n2. Delete flight\n3. Modify flight\n4. Logout" << endl;
+    std::cout << "__________________________________________________\n";
+    std::cout << "Your message: ";
+}
 string toLower(const string &input) {
     string result = input;
     for (char &c : result) {
@@ -121,7 +160,7 @@ void save_tickets_to_file(const string &ticket_data, string ticket_code)
     }
 
     file << "---------------------" << endl;
-    const char *titles[] = {"Flight Number: ", "Ticket Code: ", "Company: ", "Departure Point: ", "Destination Point: ", "Departure Date: ", "Return Date: ", "Seat Class: ", "Ticket Price: ", "Paymemt: "};
+    const char *titles[] = {"Ticket Code: ", "Flight Number: ", "Company: ", "Departure Point: ", "Destination Point: ", "Departure Date: ", "Return Date: ", "Seat Class: ", "Ticket Price: ", "Paymemt: "};
     size_t start = 0, end;
     int field_index = 0;
     while ((end = ticket_data.find(',', start)) != string::npos)
