@@ -665,6 +665,19 @@ int main() {
                         {
                             std::cout << "Modified successfully\n";
                         }
+                    } else if (lower_choice2 == "4") {
+                        send(clientSocket, "logout", strlen("logout"), 0);
+                        // memset(buffer, 0, BUFFER_SIZE);
+                        int logoutResponse = recv(clientSocket, buffer, BUFFER_SIZE, 0);
+                        if (logoutResponse > 0) {
+                            buffer[logoutResponse] = '\0';
+                            if (string(buffer) == "O_log") {
+                                currentRole = Role::None;
+                                cout << "Logged out successfully." << endl;
+                                break;
+                            }
+                        }
+                        break;
                     }
                 }
             }
