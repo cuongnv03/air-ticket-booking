@@ -300,7 +300,7 @@ void searchFlight2(int clientSocket, const string &departurePoint, const string 
 
     string result_str = "312/";
     
-    string query = "SELECT * FROM Flights WHERE departure_point = ? AND destination_point = ? AND departure_date <= ?";
+    string query = "SELECT * FROM Flights WHERE departure_point = ? AND destination_point = ? AND departure_date >= ?";
 
     if (sqlite3_prepare_v2(db, query.c_str(), -1, &stmt, nullptr) != SQLITE_OK) {
         cerr << "Error preparing query: " << sqlite3_errmsg(db) << endl;
@@ -362,7 +362,7 @@ void searchFlight3(int clientSocket, const string &departurePoint, const string 
 
     string result_str = "313/";
     
-    string query = "SELECT * FROM Flights WHERE departure_point = ? AND destination_point = ? AND departure_date <= ?";
+    string query = "SELECT * FROM Flights WHERE departure_point = ? AND destination_point = ? AND return_date <= ?";
 
     if (sqlite3_prepare_v2(db, query.c_str(), -1, &stmt, nullptr) != SQLITE_OK) {
         cerr << "Error preparing query: " << sqlite3_errmsg(db) << endl;
@@ -424,7 +424,7 @@ void searchFlight4(int clientSocket, const string &departurePoint, const string 
 
     string result_str = "314/";
     
-    string query = "SELECT * FROM Flights WHERE departure_point = ? AND destination_point = ? AND departure_date <= ?";
+    string query = "SELECT * FROM Flights WHERE departure_point = ? AND destination_point = ? AND departure_date >= ? AND return_date <= ?";
 
     if (sqlite3_prepare_v2(db, query.c_str(), -1, &stmt, nullptr) != SQLITE_OK) {
         cerr << "Error preparing query: " << sqlite3_errmsg(db) << endl;
@@ -495,7 +495,7 @@ void compareFlight(int clientSocket, const string& departurePoint, const string&
                    "FROM Flights "
                    "WHERE departure_point = ? "
                    "AND destination_point = ? "
-                   "AND departure_date <= ? "
+                   "AND departure_date >= ? "
                    "ORDER BY " + priceColumn + " " + orderClause;
     
     if (sqlite3_prepare_v2(db, query.c_str(), -1, &stmt, nullptr) != SQLITE_OK) {
