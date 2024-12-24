@@ -15,7 +15,7 @@
 
 #define MAXLINE 4096
 #define SERV_PORT 3000
-#define BUFFER_SIZE 8192
+#define BUFFER_SIZE 32768
 
 std::mutex mapMutex;
 
