@@ -181,23 +181,23 @@ int main() {
                             if (searchResponse > 0) {
                                 buffer[searchResponse] = '\0';
                                 if (string(buffer).find("311/") == 0) {
-                                    string flightData = string(buffer).substr(8);
+                                    string flightData = string(buffer).substr(4);
                                     cout << "Search results:" << endl;
                                     displaySearchResults(flightData);
                                 } else if (string(buffer).find("312/") == 0) {
-                                    string flightData = string(buffer).substr(8);
+                                    string flightData = string(buffer).substr(4);
                                     cout << "Search results:" << endl;
                                     displaySearchResults(flightData);
                                 } else if (string(buffer).find("313/") == 0) {
-                                    string flightData = string(buffer).substr(8);
+                                    string flightData = string(buffer).substr(4);
                                     cout << "Search results:" << endl;
                                     displaySearchResults(flightData);
                                 } else if (string(buffer).find("314/") == 0) {
-                                    string flightData = string(buffer).substr(8);
+                                    string flightData = string(buffer).substr(4);
                                     cout << "Search results:" << endl;
                                     displaySearchResults(flightData);
                                 } else if (string(buffer).find("320/") == 0) {
-                                    string flightData = string(buffer).substr(8);
+                                    string flightData = string(buffer).substr(4);
                                     cout << "Results:" << endl;
                                     displaySearchResults(flightData);
                                 } else if (string(buffer).find("411/") == 0) {
