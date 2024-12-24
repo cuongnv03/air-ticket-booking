@@ -1,0 +1,12 @@
+---------------------
+Ticket ID: EUH599
+Flight ID: DEF456
+Company: BambooAirWay
+Departure Point: HaNoi
+Destination Point: HoChiMinh
+Departure Date: 2023-02-10 09:45
+Return Date: 2023-02-15 18:15
+Seat Class: A
+Ticket Price: 350.000 VND
+Paymemt: PAID;
+---------------------

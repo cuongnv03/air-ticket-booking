@@ -166,8 +166,7 @@ int main() {
                                 searchRequest += "compare/" + departurePoint + "/" + destinationPoint + "/" + departureDate + "/" + seatClass + "/" + order;
                                 break;
                             } else if (searchChoice == "6") { // Exit Search
-                                cout << "Exiting search..." << endl;
-                                send(clientSocket, "exit search request", strlen("exit search request"), 0);
+
                                 break;
                             } else {
                                 cout << "Invalid choice! Please try again." << endl;
@@ -204,6 +203,8 @@ int main() {
                                     cout << "No flights found." << endl;
                                 } else if (string(buffer).find("421/") == 0) {
                                     cout << "No flights found for comparison." << endl;
+                                } else {
+                                    cout << "Unexpected server response: " << buffer << endl;
                                 }
                             }
                         }

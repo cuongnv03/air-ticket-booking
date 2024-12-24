@@ -195,6 +195,7 @@ void registerUser(int clientSocket, const string &username, const string &passwo
         if (sqlite3_step(stmt) != SQLITE_DONE) {
             cerr << "Error inserting user data: " << sqlite3_errmsg(db) << endl;
             sqlite3_finalize(stmt);
+            cout << "Send: 402/" << endl;
             send(clientSocket, "402/", strlen("402/"), 0);
             return;
         }
@@ -203,6 +204,7 @@ void registerUser(int clientSocket, const string &username, const string &passwo
         query = "SELECT user_id FROM Users WHERE username = ? AND password = ?";
         if (sqlite3_prepare_v2(db, query.c_str(), -1, &stmt, nullptr) != SQLITE_OK) {
             cerr << "Error preparing query to retrieve user_id: " << sqlite3_errmsg(db) << endl;
+            cout << "Send: 402/" << endl;
             send(clientSocket, "402/", strlen("402/"), 0);
             return;
         }
@@ -227,6 +229,7 @@ void registerUser(int clientSocket, const string &username, const string &passwo
         } else {
             cerr << "Error retrieving user_id for the new user: " << sqlite3_errmsg(db) << endl;
             sqlite3_finalize(stmt);
+            cout << "Send: 402/" << endl;
             send(clientSocket, "402/", strlen("402/"), 0);
         }
     }
@@ -500,6 +503,7 @@ void compareFlight(int clientSocket, const string& departurePoint, const string&
     
     if (sqlite3_prepare_v2(db, query.c_str(), -1, &stmt, nullptr) != SQLITE_OK) {
         cerr << "Error preparing query: " << sqlite3_errmsg(db) << endl;
+        cout << "Send: 421/" << " -> " << user.username << "\n";
         send(clientSocket, "421/", strlen("421/"), 0);
         return;
     }
@@ -571,6 +575,7 @@ void bookFlight(int clientSocket, const string &flightId, const string &seatClas
         querySeat = "SELECT seat_class_B FROM Flights WHERE flight_num = ?";
     } else {
         msg = "431/";
+        cout << "Send: " << msg << " ->" << user.username << "\n";
         send(clientSocket, msg.c_str(), msg.length(), 0);
         return;
     }
@@ -787,6 +792,7 @@ void cancelTicket(int clientSocket, const std::string& ticketId, const User& use
     string query = "SELECT user_id, flight_num, seat_class, ticket_price FROM Tickets WHERE ticket_code = ?";
     if (sqlite3_prepare_v2(db, query.c_str(), -1, &stmt, nullptr) != SQLITE_OK) {
         cerr << "Error preparing query: " << sqlite3_errmsg(db) << endl;
+        cout << "Send: 493/" << " -> " << user.username << endl;
         send(clientSocket, "493/", strlen("493/"), 0);
         return;
     }
@@ -800,19 +806,24 @@ void cancelTicket(int clientSocket, const std::string& ticketId, const User& use
         seatClass = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 2));
         ticketPrice = sqlite3_column_int(stmt, 3);
     } else {
+        cout << "Send: 491/" << " -> " << user.username<< endl;
         send(clientSocket, "491/", strlen("491/"), 0); // Ticket not found or doesn't belong to user
+        
         sqlite3_finalize(stmt);
         return;
     }
     sqlite3_finalize(stmt);
 
     if (userId != user.userId) {
+        cout << "Send: 491/" << " -> " << user.username<< endl;
         send(clientSocket, "491/", strlen("491/"), 0);
         return;
     }
 
     // Notify the client to input payment details for refund
+    
     msg = "390/" + ticketId + "/" + to_string(ticketPrice);
+    cout << "Send: " << msg << " ->" << user.username << "\n";
     send(clientSocket, msg.c_str(), msg.length(), 0);
 }
 
@@ -824,6 +835,7 @@ void processRefund(int clientSocket, const string& ticketId, const int &ticketPr
     string query = "SELECT flight_num, seat_class FROM Tickets WHERE ticket_code = ?";
     if (sqlite3_prepare_v2(db, query.c_str(), -1, &stmt, nullptr) != SQLITE_OK) {
         cerr << "Error preparing query: " << sqlite3_errmsg(db) << endl;
+        cout << "Send: 493/" << " -> " << user.username<< endl;
         send(clientSocket, "493/", strlen("493/"), 0);
         return;
     }
@@ -834,6 +846,7 @@ void processRefund(int clientSocket, const string& ticketId, const int &ticketPr
         flightId = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 0));
         seatClass = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 1));
     } else {
+        cout << "Send: 491/" << " -> " << user.username<< endl;
         send(clientSocket, "491/", strlen("491/"), 0); // Ticket not found
         sqlite3_finalize(stmt);
         return;
@@ -843,6 +856,7 @@ void processRefund(int clientSocket, const string& ticketId, const int &ticketPr
     // Validate payment details
     if ((paymentMethod == "Card" && paymentDetails.length() != 16) ||
         (paymentMethod == "E-Wallet" && paymentDetails.length() != 10)) {
+        cout << "Send: 442/" << " -> " << user.username<< endl;
         send(clientSocket, "442/", strlen("442/"), 0); // Invalid payment details
         return;
     }
@@ -851,6 +865,7 @@ void processRefund(int clientSocket, const string& ticketId, const int &ticketPr
     string deleteQuery = "DELETE FROM Tickets WHERE ticket_code = ?";
     if (sqlite3_prepare_v2(db, deleteQuery.c_str(), -1, &stmt, nullptr) != SQLITE_OK) {
         cerr << "Error preparing delete query: " << sqlite3_errmsg(db) << endl;
+        cout << "Send: 493/" << " -> " << user.username<< endl;
         send(clientSocket, "493/", strlen("493/"), 0);
         return;
     }
@@ -858,6 +873,7 @@ void processRefund(int clientSocket, const string& ticketId, const int &ticketPr
 
     if (sqlite3_step(stmt) != SQLITE_DONE) {
         cerr << "Error deleting ticket: " << sqlite3_errmsg(db) << endl;
+        cout << "Send: 493/" << " -> " << user.username<< endl;
         send(clientSocket, "493/", strlen("493/"), 0);
         sqlite3_finalize(stmt);
         return;
@@ -868,6 +884,7 @@ void processRefund(int clientSocket, const string& ticketId, const int &ticketPr
     updateSeatCount(db, flightId, seatClass, -1);
 
     // Refund successful
+    cout << "Send: 391/" << " -> " << user.username<< endl;
     send(clientSocket, "391/", strlen("391/"), 0);
 }
 
@@ -879,6 +896,7 @@ void changeTicket(int clientSocket, const std::string& ticketId, const std::stri
     string oldQuery = "SELECT user_id, ticket_price, flight_num, seat_class FROM Tickets WHERE ticket_code = ?";
     if (sqlite3_prepare_v2(db, oldQuery.c_str(), -1, &stmt, nullptr) != SQLITE_OK) {
         cerr << "Error preparing query: " << sqlite3_errmsg(db) << endl;
+        cout << "Send: 482/" << " -> " << user.username<< endl;
         send(clientSocket, "482/", strlen("482/"), 0);
         return;
     }
@@ -892,6 +910,7 @@ void changeTicket(int clientSocket, const std::string& ticketId, const std::stri
         oldFlightId = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 2));
         oldSeatClass = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 3));
     } else {
+        cout << "Send: 481/" << " -> " << user.username<< endl;
         send(clientSocket, "481/", strlen("481/"), 0); // Ticket not found or not owned by user
         sqlite3_finalize(stmt);
         return;
@@ -899,6 +918,7 @@ void changeTicket(int clientSocket, const std::string& ticketId, const std::stri
     sqlite3_finalize(stmt);
 
     if (userId != user.userId) {
+        cout << "Send: 481/" << " -> " << user.username<< endl;
         send(clientSocket, "481/", strlen("481/"), 0);
         return;
     }
@@ -907,6 +927,7 @@ void changeTicket(int clientSocket, const std::string& ticketId, const std::stri
     string deleteQuery = "DELETE FROM Tickets WHERE ticket_code = ?";
     if (sqlite3_prepare_v2(db, deleteQuery.c_str(), -1, &stmt, nullptr) != SQLITE_OK) {
         cerr << "Error preparing delete query: " << sqlite3_errmsg(db) << endl;
+        cout << "Send: 482/" << " -> " << user.username<< endl;
         send(clientSocket, "482/", strlen("482/"), 0);
         return;
     }
@@ -914,6 +935,7 @@ void changeTicket(int clientSocket, const std::string& ticketId, const std::stri
 
     if (sqlite3_step(stmt) != SQLITE_DONE) {
         cerr << "Error deleting ticket: " << sqlite3_errmsg(db) << endl;
+        cout << "Send: 482/" << " -> " << user.username<< endl;
         send(clientSocket, "482/", strlen("482/"), 0);
         sqlite3_finalize(stmt);
         return;
@@ -946,12 +968,14 @@ void changeTicket(int clientSocket, const std::string& ticketId, const std::stri
         newQuerySeat = "SELECT seat_class_B FROM Flights WHERE flight_num = ?";
     } else {
         msg = "431/";
+        cout << "Send: " << msg << " ->" << user.username << "\n";
         send(clientSocket, msg.c_str(), msg.length(), 0);
         return;
     }
 
     if (sqlite3_prepare_v2(db, newQuerySeat.c_str(), -1, &stmt, nullptr) != SQLITE_OK) {
         cerr << "Error preparing query: " << sqlite3_errmsg(db) << endl;
+        cout << "Send: 482/" << " -> " << user.username<< endl;
         send(clientSocket, "482/", strlen("482/"), 0);
         return;
     }
@@ -1067,6 +1091,7 @@ void processPaymentForChange(int clientSocket, const string &ticketId, const int
     if ((paymentMethod == "Card" && paymentDetails.length() != 16) ||
         (paymentMethod == "E-Wallet" && paymentDetails.length() != 10)) {
         string payResponse = "442/"; // Invalid format
+        cout << "Send: " << payResponse << " ->" << user.username << "\n";
         send(clientSocket, payResponse.c_str(), payResponse.length(), 0);
         return;
     }
@@ -1106,6 +1131,7 @@ void processRefundForChange(int clientSocket, const string& ticketId, const int 
     if ((paymentMethod == "Card" && paymentDetails.length() != 16) ||
         (paymentMethod == "E-Wallet" && paymentDetails.length() != 10)) {
         string payResponse = "442/"; // Invalid format
+        cout << "Send: " << payResponse << " ->" << user.username << "\n";
         send(clientSocket, payResponse.c_str(), payResponse.length(), 0);
         return;
     }
@@ -1294,8 +1320,9 @@ void print_ticket(int clientSocket, const string ticket_code, const User &user)
     }
 }
 
-void mailTicket(int clientSocket, const string &ticketID) {
+void mailTicket(int clientSocket, const string &ticketID, const User &user) {
     string requestEmailResponse = "370/"; // Yêu cầu nhập email
+    cout << "Send: " << requestEmailResponse<< " -> " << user.username << "\n";
     send(clientSocket, requestEmailResponse.c_str(), requestEmailResponse.length(), 0);
     char buffer[BUFFER_SIZE];
     // memset(buffer, 0, BUFFER_SIZE);
@@ -1309,6 +1336,7 @@ void mailTicket(int clientSocket, const string &ticketID) {
     // Kiểm tra định dạng email
     if (!regex_match(email, regex("^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\\.[a-zA-Z0-9-.]+$"))) {
         string invalidResponse = "472/"; // Định dạng email không hợp lệ
+        cout << "Send: " << invalidResponse << " -> " << user.username<< "\n";
         send(clientSocket, invalidResponse.c_str(), invalidResponse.length(), 0);
         return;
     }
@@ -1317,9 +1345,11 @@ void mailTicket(int clientSocket, const string &ticketID) {
     string message = "Your ticket ID is " + ticketID + ". Thank you for using our service.";
     if (sendEmail(email, "Your Ticket ID", message)) {
         string successResponse = "371/"; // Gửi thành công
+        cout << "Send: " << successResponse << " -> " << user.username<< "\n";
         send(clientSocket, successResponse.c_str(), successResponse.length(), 0);
     } else {
         string failResponse = "471/"; // Gửi thất bại
+        cout << "Send: " << failResponse << " -> " << user.username<< "\n";
         send(clientSocket, failResponse.c_str(), failResponse.length(), 0);
     }
 }
@@ -1346,11 +1376,11 @@ void handleUserFunctions(int clientSocket, const User &user) {
             return;
         }
 
-        if (received == "exit search request") {
-            string msg;
-            msg += "Exit search";
-            send(clientSocket, msg.c_str(), msg.length(), 0);
-        }
+        // if (received == "exit search request") {
+        //     string msg;
+        //     msg += "Exit search";
+        //     send(clientSocket, msg.c_str(), msg.length(), 0);
+        // }
 
         vector<string> requestParts = splitString(received, '/');
 
@@ -1384,9 +1414,10 @@ void handleUserFunctions(int clientSocket, const User &user) {
             print_ticket(clientSocket, requestParts[1], user);
         } else if (requestParts[0] == "MAIL") {
             if (requestParts.size() == 2) {
-                mailTicket(clientSocket, requestParts[1]);
+                mailTicket(clientSocket, requestParts[1], user);
             } else {
                 string invalidFormatResponse = "475/"; // Lỗi định dạng
+                cout << "Send: " << invalidFormatResponse << " -> " << user.username << "\n";
                 send(clientSocket, invalidFormatResponse.c_str(), invalidFormatResponse.length(), 0);
             }
 }
